@@ -170,7 +170,14 @@ export function SellerOrderDetailPage() {
                 This order was cancelled.
               </div>
             ) : (
-              <OrderProgressTrack status={order.status} />
+              <OrderProgressTrack
+                status={order.status}
+                hint={
+                  order.status === 'READY_FOR_DISPATCH'
+                    ? 'This order will mark as completed automatically in about 1 minute.'
+                    : undefined
+                }
+              />
             )}
 
             {order.status === 'COMPLETED' && order.paymentId && (

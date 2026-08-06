@@ -32,11 +32,11 @@ export const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
   CANCELLED: 'bg-red-50 text-red-800 border-red-100',
 }
 
+/** Seller buttons only — Completed is auto after Ready for Dispatch. */
 export const SELLER_ACTION_LABELS: Partial<Record<OrderStatus, string>> = {
   PENDING: 'Accept order',
   ACCEPTED: 'Mark Order Prepared',
   PREPARING: 'Mark ready for dispatch',
-  READY_FOR_DISPATCH: 'Mark completed',
 }
 
 export function canSellerAdvance(status: OrderStatus) {
