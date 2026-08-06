@@ -17,3 +17,5 @@ dist
 .next/
 .DS_Store
 *.log
+pnpm-lock.yaml
+yarn.lock
