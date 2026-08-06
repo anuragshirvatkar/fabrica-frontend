@@ -2,8 +2,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Container } from './container'
 import {
-  Menu,
-  X,
   Heart,
   ShoppingCart,
   ArrowLeft,
@@ -155,12 +153,10 @@ export function Navbar({
   searchQuery = '',
 }: NavbarProps) {
   const { user, getAccessToken } = useAuth()
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
   const isSolid = variant === 'solid'
 
   const textClass = isSolid ? 'text-black' : 'text-white'
-  const mobileBg = isSolid ? 'bg-white border-gray-200' : 'bg-black/90 border-white/10'
   const positionClass = fixed ? 'fixed top-0 left-0 right-0 z-50' : 'relative'
   const iconClass = isSolid
     ? 'text-gray-700 hover:text-black hover:bg-gray-100'
@@ -221,7 +217,7 @@ export function Navbar({
   )
 
   const authMobile = (
-    <div className="flex md:hidden items-center gap-1.5 shrink-0 ml-auto">
+    <div className="flex md:hidden items-center gap-2 shrink-0 ml-auto">
       {user ? (
         <>
           {showActions && !minimal && <NotificationBell className={iconClass} />}
@@ -229,13 +225,24 @@ export function Navbar({
         </>
       ) : (
         !minimal && (
-          <button
-            className={`p-2 ${textClass}`}
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <>
+            <Link
+              to="/login"
+              className={`text-sm font-medium hover:opacity-80 transition-opacity whitespace-nowrap ${textClass}`}
+            >
+              Log in
+            </Link>
+            <Link
+              to="/signup"
+              className={
+                isSolid
+                  ? 'btn-pill-black px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap'
+                  : 'btn-pill-white px-3.5 py-2 text-xs sm:text-sm whitespace-nowrap'
+              }
+            >
+              Sign up
+            </Link>
+          </>
         )
       )}
     </div>
@@ -282,31 +289,6 @@ export function Navbar({
         <div className={barClassName}>{barContent}</div>
       ) : (
         <Container className={barClassName}>{barContent}</Container>
-      )}
-
-      {mobileOpen && !minimal && !user && (
-        <div className={`md:hidden backdrop-blur-sm border-t ${mobileBg}`}>
-          <Container className="py-4 flex flex-col gap-3">
-            <Link
-              to="/login"
-              onClick={() => setMobileOpen(false)}
-              className={`text-sm font-medium py-2 ${textClass}`}
-            >
-              Log in
-            </Link>
-            <Link
-              to="/signup"
-              onClick={() => setMobileOpen(false)}
-              className={
-                isSolid
-                  ? 'btn-pill-black px-5 py-2.5 text-sm w-full text-center'
-                  : 'btn-pill-white px-5 py-2.5 text-sm w-full text-center'
-              }
-            >
-              Sign up
-            </Link>
-          </Container>
-        </div>
       )}
     </nav>
   )

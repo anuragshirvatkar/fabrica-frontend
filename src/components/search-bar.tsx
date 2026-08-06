@@ -82,12 +82,12 @@ export function SearchBar() {
 
   return (
     <Container>
-      <div className="max-w-3xl mx-auto" ref={rootRef}>
-        <div className="relative">
-          <div className="bg-white rounded-2xl sm:rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.15)] p-1.5 sm:p-1">
-            <div className="flex flex-col sm:flex-row gap-1 sm:gap-0">
-              <div className="flex-1 relative flex items-center">
-                <Search className="absolute left-4 text-gray-400" size={17} />
+      <div className="w-full max-w-3xl mx-auto min-w-0" ref={rootRef}>
+        <div className="relative min-w-0">
+          <div className="bg-white rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.15)] p-1">
+            <div className="flex items-center gap-1 min-w-0">
+              <div className="flex-1 relative flex items-center min-w-0">
+                <Search className="absolute left-3.5 sm:left-4 text-gray-400 pointer-events-none" size={17} />
                 <input
                   type="text"
                   value={query}
@@ -102,15 +102,15 @@ export function SearchBar() {
                     if (e.key === 'Enter') goSearch()
                   }}
                   placeholder="Search fabrics..."
-                  className={`w-full pl-11 py-3 bg-transparent rounded-xl sm:rounded-full focus:outline-none text-sm text-gray-800 placeholder:text-gray-400 ${
-                    query.length > 0 ? 'pr-10' : 'pr-3'
+                  className={`w-full min-w-0 pl-10 sm:pl-11 py-2.5 sm:py-3 bg-transparent rounded-full focus:outline-none text-sm text-gray-800 placeholder:text-gray-400 ${
+                    query.length > 0 ? 'pr-10' : 'pr-2'
                   }`}
                 />
                 {query.length > 0 && (
                   <button
                     type="button"
                     onClick={clearQuery}
-                    className="absolute right-3 w-9 h-9 inline-flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-black transition-colors"
+                    className="absolute right-2 w-8 h-8 inline-flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-black transition-colors"
                     aria-label="Clear search"
                     title="Clear search"
                   >
@@ -121,16 +121,20 @@ export function SearchBar() {
               <button
                 type="button"
                 onClick={() => goSearch()}
-                className="btn-pill-black px-5 py-3 text-sm whitespace-nowrap sm:mr-0.5 rounded-xl sm:rounded-full"
+                className="btn-pill-black shrink-0 h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-3 text-sm rounded-full"
+                aria-label="Search"
               >
-                <Search size={14} />
-                Search
+                <Search size={15} className="sm:hidden" />
+                <span className="hidden sm:inline-flex items-center gap-2">
+                  <Search size={14} />
+                  Search
+                </span>
               </button>
             </div>
           </div>
 
           {open && query.trim().length >= 2 && (
-            <div className="absolute left-0 right-0 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50 max-h-[min(24rem,70dvh)] overflow-y-auto">
+            <div className="absolute left-0 right-0 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50 max-h-[min(24rem,50dvh)] overflow-y-auto">
               <button
                 type="button"
                 onClick={() => goSearch(query)}
@@ -181,14 +185,14 @@ export function SearchBar() {
           )}
         </div>
 
-        <div className="mt-3 md:mt-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none justify-start sm:justify-center sm:flex-wrap">
-          <span className="text-xs text-white/80 mr-1 shrink-0">Popular:</span>
+        <div className="mt-3 md:mt-4 flex flex-wrap items-center gap-1.5 sm:gap-2 justify-start sm:justify-center pr-14 sm:pr-0">
+          <span className="text-[11px] sm:text-xs text-white/80 shrink-0">Popular:</span>
           {popularSearches.map((term) => (
             <button
               key={term}
               type="button"
               onClick={() => goSearch(term)}
-              className="text-xs px-3 py-1.5 rounded-full bg-white/15 text-white border border-white/25 backdrop-blur-sm hover:bg-white/25 transition-colors whitespace-nowrap shrink-0"
+              className="text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/15 text-white border border-white/25 backdrop-blur-sm hover:bg-white/25 transition-colors whitespace-nowrap"
             >
               {term}
             </button>

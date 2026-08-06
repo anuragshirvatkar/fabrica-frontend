@@ -38,6 +38,12 @@
     font-weight: 600;
   }
 
+  /* Hide Edge/IE native password reveal so custom eye toggles aren't doubled */
+  input[type='password']::-ms-reveal,
+  input[type='password']::-ms-clear {
+    display: none;
+  }
+
   a {
     color: inherit;
     text-decoration: none;

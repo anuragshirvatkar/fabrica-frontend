@@ -90,6 +90,7 @@ export function AiAssistant() {
     user?.role === 'SELLER' ||
     location.pathname.startsWith('/seller') ||
     location.pathname.startsWith('/buyer/setup')
+  const onLandingHero = location.pathname === '/'
 
   useEffect(() => {
     if (!open) return
@@ -232,15 +233,17 @@ export function AiAssistant() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed z-[70] bottom-20 right-4 md:bottom-8 md:right-7 inline-flex items-center gap-2.5 rounded-full bg-[#faf8f5] text-black border border-black/10 shadow-[0_8px_28px_rgba(0,0,0,0.22)] hover:shadow-[0_10px_32px_rgba(0,0,0,0.28)] hover:bg-white transition-all pl-2 pr-4 h-12 ring-1 ring-white/80 ${
-          open ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100'
-        }`}
+        className={`fixed z-[70] right-3 sm:right-4 md:right-7 inline-flex items-center gap-2 rounded-full bg-[#faf8f5] text-black border border-black/10 shadow-[0_8px_28px_rgba(0,0,0,0.22)] hover:shadow-[0_10px_32px_rgba(0,0,0,0.28)] hover:bg-white transition-all pl-1.5 pr-3 sm:pl-2 sm:pr-4 h-11 sm:h-12 ring-1 ring-white/80 ${
+          onLandingHero
+            ? 'bottom-[9.75rem] sm:bottom-6 md:bottom-8'
+            : 'bottom-5 sm:bottom-6 md:bottom-8'
+        } ${open ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100'}`}
         aria-label="Open Fabrica AI assistant"
       >
         <span className="w-8 h-8 rounded-full bg-black text-white inline-flex items-center justify-center shrink-0">
           <Sparkles size={15} />
         </span>
-        <span className="text-sm font-semibold tracking-wide">Ask Fabrica</span>
+        <span className="text-xs sm:text-sm font-semibold tracking-wide">Ask Fabrica</span>
       </button>
 
       {open && (
