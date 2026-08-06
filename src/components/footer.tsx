@@ -9,10 +9,10 @@ const marketplaceLinks = [
   { label: 'Silk', category: 'Silk' },
 ]
 
-const companyLinks = [
+const companyLinks: Array<{ label: string; to?: string; href?: string }> = [
   { label: 'About Us', to: '/about' },
   { label: 'Privacy Policy', to: '/privacy' },
-  { label: 'How it works', to: '/#how-it-works' },
+  { label: 'How it works', href: 'https://youtu.be/h5J1ntMXC70' },
 ]
 
 function LinkedInIcon({ size = 16 }: { size?: number }) {
@@ -120,12 +120,23 @@ export function Footer({ showMarketplace = true }: FooterProps) {
             <ul className="space-y-2.5">
               {companyLinks.map((item) => (
                 <li key={item.label}>
-                  <Link
-                    to={item.to}
-                    className="text-sm text-white/55 hover:text-white transition-colors"
-                  >
-                    {item.label}
-                  </Link>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-white/55 hover:text-white transition-colors"
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={item.to!}
+                      className="text-sm text-white/55 hover:text-white transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

@@ -125,15 +125,17 @@ export function Hero() {
               Explore Marketplace
               <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
-            <button
-              type="button"
+            <a
+              href="https://youtu.be/h5J1ntMXC70"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2.5 text-white text-sm md:text-base font-medium hover:opacity-80 transition-opacity"
             >
               <span className="w-9 h-9 rounded-full border border-white/70 flex items-center justify-center">
                 <Play size={14} fill="white" className="ml-0.5" />
               </span>
               How it works
-            </button>
+            </a>
           </div>
         </div>
       </Container>
