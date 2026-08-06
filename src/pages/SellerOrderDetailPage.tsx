@@ -2,11 +2,32 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { SellerShell } from '../components/seller/SellerShell'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { PageLoader } from '../components/ui/PageLoader'
 import { useAuth } from '../context/AuthContext'
-import { dispatchOrder, downloadOrderInvoice, fetchOrder, type ApiOrder } from '../lib/api'
+import {
+  advanceOrder,
+  downloadOrderInvoice,
+  fetchOrder,
+  rejectOrder,
+  type ApiOrder,
+} from '../lib/api'
 import { formatNumber } from '../lib/format'
 import { onOrderNotification } from '../lib/orderRealtime'
+import { OrderProgressTrack } from '../components/orders/OrderProgressTrack'
+import {
+  canSellerAdvance,
+  ORDER_STATUS_LABELS,
+  SELLER_ACTION_LABELS,
+  type OrderStatus,
+} from '../lib/orderStatuses'
+
+const LIVE_STATUSES = new Set<OrderStatus>([
+  'PENDING',
+  'ACCEPTED',
+  'PREPARING',
+  'READY_FOR_DISPATCH',
+])
 
 export function SellerOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -15,6 +36,8 @@ export function SellerOrderDetailPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
 
   const load = async (options?: { silent?: boolean }) => {
     if (!id) return
@@ -35,10 +58,9 @@ export function SellerOrderDetailPage() {
     void load()
   }, [id])
 
-  // Keep seller view live while order can still change (cancel / dispatch / deliver).
   useEffect(() => {
     if (!order) return
-    if (order.status !== 'PLACED' && order.status !== 'DISPATCHED') return
+    if (!LIVE_STATUSES.has(order.status)) return
 
     const timer = window.setInterval(() => {
       void load({ silent: true })
@@ -76,11 +98,12 @@ export function SellerOrderDetailPage() {
                   Order #{String(order._id).slice(-6).toUpperCase()}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  Status: {order.status} · ₹{formatNumber(order.totalAmount)}
+                  Status: {ORDER_STATUS_LABELS[order.status] || order.status} · ₹
+                  {formatNumber(order.totalAmount)}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {order.status === 'DELIVERED' && (
+                {order.status === 'COMPLETED' && (
                   <button
                     type="button"
                     disabled={downloading}
@@ -105,32 +128,52 @@ export function SellerOrderDetailPage() {
                     {downloading ? 'Downloading...' : 'Download sales invoice'}
                   </button>
                 )}
-                {order.status === 'PLACED' && (
+                {order.status === 'PENDING' && (
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || rejecting}
+                    onClick={() => setRejectOpen(true)}
+                    className="px-4 py-2.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Reject order
+                  </button>
+                )}
+                {canSellerAdvance(order.status) && (
+                  <button
+                    type="button"
+                    disabled={busy || rejecting}
                     onClick={async () => {
                       setBusy(true)
                       try {
                         const token = await getAccessToken()
                         if (!token || !id) return
-                        const result = await dispatchOrder(token, id)
+                        const result = await advanceOrder(token, id)
                         setOrder(result.order)
                       } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Dispatch failed')
+                        setError(err instanceof Error ? err.message : 'Update failed')
                       } finally {
                         setBusy(false)
                       }
                     }}
                     className="btn-pill-black px-4 py-2.5 text-sm rounded-lg disabled:opacity-50"
                   >
-                    {busy ? 'Dispatching...' : 'Mark Dispatched'}
+                    {busy
+                      ? 'Updating...'
+                      : SELLER_ACTION_LABELS[order.status] || 'Advance status'}
                   </button>
                 )}
               </div>
             </div>
 
-            {order.status === 'DELIVERED' && order.paymentId && (
+            {order.status === 'CANCELLED' ? (
+              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                This order was cancelled.
+              </div>
+            ) : (
+              <OrderProgressTrack status={order.status} />
+            )}
+
+            {order.status === 'COMPLETED' && order.paymentId && (
               <section className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-emerald-900">Payment recorded</p>
@@ -161,42 +204,66 @@ export function SellerOrderDetailPage() {
                         <img src={item.image} alt="" className="w-full h-full object-cover" />
                       ) : null}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{item.productName}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <p className="text-xs text-gray-500">
-                          {item.quantity} {item.unit}
-                        </p>
-                        {item.colorHex ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-[#f5f3ef] border border-gray-200 rounded-full px-2 py-0.5">
-                            <span
-                              className="w-3 h-3 rounded-full border border-black/10 shrink-0"
-                              style={{ backgroundColor: item.colorHex }}
-                            />
-                            Selected color {item.colorHex}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-amber-700">Color not recorded</span>
-                        )}
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-black">{item.productName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {item.quantity} {item.unit}
+                        {item.colorHex ? ` · ${item.colorHex}` : ''}
+                      </p>
                     </div>
+                    <p className="text-sm font-semibold text-black shrink-0">
+                      ₹{formatNumber(item.price * item.quantity)}
+                    </p>
                   </div>
                 ))}
               </div>
             </section>
 
             <section className="rounded-2xl border border-gray-200 bg-white p-5">
-              <h2 className="font-serif text-xl font-semibold mb-3">Ship To</h2>
-              <p className="text-sm font-medium">{order.shippingAddress.name}</p>
+              <h2 className="font-serif text-xl font-semibold mb-3">Ship to</h2>
+              <p className="text-sm text-black font-medium">{order.shippingAddress.name}</p>
               <p className="text-sm text-gray-600 mt-1">
-                {order.shippingAddress.addressLine1}, {order.shippingAddress.city},{' '}
-                {order.shippingAddress.state} {order.shippingAddress.postalCode}
+                {order.shippingAddress.addressLine1}
+                {order.shippingAddress.addressLine2
+                  ? `, ${order.shippingAddress.addressLine2}`
+                  : ''}
+              </p>
+              <p className="text-sm text-gray-600">
+                {order.shippingAddress.city}, {order.shippingAddress.state}{' '}
+                {order.shippingAddress.postalCode}
               </p>
               <p className="text-sm text-gray-500 mt-1">{order.shippingAddress.phone}</p>
             </section>
           </div>
         )}
       </main>
+
+      <ConfirmModal
+        open={rejectOpen}
+        onClose={() => !rejecting && setRejectOpen(false)}
+        onConfirm={async () => {
+          if (!id) return
+          setRejecting(true)
+          setError('')
+          try {
+            const token = await getAccessToken()
+            if (!token) return
+            const result = await rejectOrder(token, id)
+            setOrder(result.order)
+            setRejectOpen(false)
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to reject order')
+          } finally {
+            setRejecting(false)
+          }
+        }}
+        title="Reject this order?"
+        message="The buyer will be notified and stock will be restored. You can only reject before accepting."
+        confirmLabel="Reject order"
+        cancelLabel="Keep order"
+        loading={rejecting}
+        irreversible
+      />
     </SellerShell>
   )
 }

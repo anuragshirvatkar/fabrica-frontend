@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Package,
   Store,
+  UserRound,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { fetchCart } from '../lib/api'
@@ -93,6 +94,10 @@ function UserMenu({
             <p className="text-sm font-medium text-black truncate">{user.email}</p>
           </div>
           <div className="py-1">
+            <Link to="/profile" className={itemClass} onClick={() => setOpen(false)}>
+              <UserRound size={15} />
+              Profile
+            </Link>
             <Link to="/marketplace" className={itemClass} onClick={() => setOpen(false)}>
               <Store size={15} />
               Marketplace

@@ -26,11 +26,5 @@ export function onOrderNotification(handler: (detail: FabricaNotificationDetail)
 
 export function isOrderStatusNotification(type?: string) {
   if (!type) return true
-  return (
-    type.startsWith('ORDER_') ||
-    type === 'ORDER_PLACED' ||
-    type === 'ORDER_DISPATCHED' ||
-    type === 'ORDER_DELIVERED' ||
-    type === 'ORDER_CANCELLED'
-  )
+  return type.startsWith('ORDER_')
 }

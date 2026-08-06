@@ -6,6 +6,7 @@ type ListRecordCardProps = {
   image?: string | null
   imageAlt?: string
   imageFallback?: ReactNode
+  imageBadge?: ReactNode
   children: ReactNode
   aside?: ReactNode
   onClick?: () => void
@@ -16,6 +17,7 @@ export function ListRecordCard({
   image,
   imageAlt = '',
   imageFallback,
+  imageBadge,
   children,
   aside,
   onClick,
@@ -29,6 +31,7 @@ export function ListRecordCard({
           {imageFallback}
         </div>
       )}
+      {imageBadge}
     </div>
   )
 

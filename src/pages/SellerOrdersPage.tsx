@@ -6,23 +6,16 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { ListRecordCard } from '../components/ui/ListRecordCard'
 import { PageLoader } from '../components/ui/PageLoader'
 import { useAuth } from '../context/AuthContext'
-import { dispatchOrder, fetchOrders, type ApiOrder } from '../lib/api'
+import { advanceOrder, fetchOrders, type ApiOrder } from '../lib/api'
 import { formatNumber } from '../lib/format'
 import { onOrderNotification } from '../lib/orderRealtime'
-
-const statusLabel: Record<string, string> = {
-  PLACED: 'Order Placed',
-  DISPATCHED: 'Order Dispatched',
-  DELIVERED: 'Order Delivered',
-  CANCELLED: 'Cancelled',
-}
-
-const statusStyles: Record<string, string> = {
-  PLACED: 'bg-amber-50 text-amber-800 border-amber-100',
-  DISPATCHED: 'bg-sky-50 text-sky-800 border-sky-100',
-  DELIVERED: 'bg-emerald-50 text-emerald-800 border-emerald-100',
-  CANCELLED: 'bg-red-50 text-red-700 border-red-100',
-}
+import {
+  canSellerAdvance,
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_STYLES,
+  SELLER_ACTION_LABELS,
+  type OrderStatus,
+} from '../lib/orderStatuses'
 
 function orderDateKey(order: ApiOrder) {
   const raw = order.createdAt || order.updatedAt
@@ -99,7 +92,7 @@ export function SellerOrdersPage() {
       const fullId = String(order._id).toLowerCase()
       const buyer = order.shippingAddress?.name?.toLowerCase() || ''
       const city = order.shippingAddress?.city?.toLowerCase() || ''
-      const status = (statusLabel[order.status] || order.status).toLowerCase()
+      const status = (ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status).toLowerCase()
       const products = order.items.map((item) => item.productName.toLowerCase()).join(' ')
 
       return (
@@ -126,7 +119,7 @@ export function SellerOrdersPage() {
       <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
         <h1 className="font-serif text-3xl font-semibold text-black mb-1">Orders</h1>
         <p className="text-sm text-gray-500 mb-6">
-          Mark orders as dispatched. Delivery confirms automatically after 2 minutes.
+          Mark orders as dispatched. Delivery confirms automatically after 1 minute.
           {!loading && orders.length > 0 ? (
             <span className="text-gray-400">
               {' '}
@@ -240,7 +233,7 @@ export function SellerOrdersPage() {
                           View
                           <ArrowRight size={13} />
                         </Link>
-                        {order.status === 'PLACED' && (
+                        {canSellerAdvance(order.status) && (
                           <button
                             type="button"
                             disabled={busyId === order._id}
@@ -252,11 +245,15 @@ export function SellerOrdersPage() {
                               try {
                                 const token = await getAccessToken()
                                 if (!token) return
-                                await dispatchOrder(token, order._id)
-                                await load()
+                                const result = await advanceOrder(token, order._id)
+                                setOrders((prev) =>
+                                  prev.map((row) =>
+                                    row._id === order._id ? result.order : row,
+                                  ),
+                                )
                               } catch (err) {
                                 setError(
-                                  err instanceof Error ? err.message : 'Failed to dispatch order',
+                                  err instanceof Error ? err.message : 'Failed to update order',
                                 )
                               } finally {
                                 setBusyId(null)
@@ -264,7 +261,9 @@ export function SellerOrdersPage() {
                             }}
                             className="h-9 px-3 rounded-md bg-black text-white text-xs font-medium hover:bg-gray-800 disabled:opacity-50"
                           >
-                            {busyId === order._id ? 'Dispatching...' : 'Dispatch'}
+                            {busyId === order._id
+                              ? 'Updating...'
+                              : SELLER_ACTION_LABELS[order.status] || 'Advance'}
                           </button>
                         )}
                       </div>
@@ -277,11 +276,11 @@ export function SellerOrdersPage() {
                     </p>
                     <span
                       className={`inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
-                        statusStyles[order.status] ||
+                        ORDER_STATUS_STYLES[order.status as OrderStatus] ||
                         'bg-gray-50 text-gray-700 border-gray-100'
                       }`}
                     >
-                      {statusLabel[order.status] || order.status}
+                      {ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status}
                     </span>
                   </div>
                   <h3 className="font-serif text-base sm:text-lg md:text-xl font-semibold text-black leading-snug line-clamp-2">

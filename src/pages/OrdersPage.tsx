@@ -12,20 +12,7 @@ import { useAuth } from '../context/AuthContext'
 import { fetchOrders, type ApiOrder } from '../lib/api'
 import { formatNumber } from '../lib/format'
 import { onOrderNotification } from '../lib/orderRealtime'
-
-const statusLabel: Record<string, string> = {
-  PLACED: 'Order Placed',
-  DISPATCHED: 'Order Dispatched',
-  DELIVERED: 'Order Delivered',
-  CANCELLED: 'Cancelled',
-}
-
-const statusStyles: Record<string, string> = {
-  PLACED: 'bg-amber-50 text-amber-800 border-amber-100',
-  DISPATCHED: 'bg-sky-50 text-sky-800 border-sky-100',
-  DELIVERED: 'bg-emerald-50 text-emerald-800 border-emerald-100',
-  CANCELLED: 'bg-red-50 text-red-700 border-red-100',
-}
+import { ORDER_STATUS_LABELS, ORDER_STATUS_STYLES, type OrderStatus } from '../lib/orderStatuses'
 
 function formatOrderDate(value?: string) {
   if (!value) return ''
@@ -150,11 +137,11 @@ export function OrdersPage() {
                     </p>
                     <span
                       className={`inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
-                        statusStyles[order.status] ||
+                        ORDER_STATUS_STYLES[order.status as OrderStatus] ||
                         'bg-gray-50 text-gray-700 border-gray-100'
                       }`}
                     >
-                      {statusLabel[order.status] || order.status}
+                      {ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status}
                     </span>
                   </div>
                   <h3 className="font-serif text-base sm:text-lg md:text-xl font-semibold text-black leading-snug line-clamp-2">

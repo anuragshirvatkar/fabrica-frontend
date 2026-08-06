@@ -8,8 +8,6 @@ import {
   Shirt,
   Grid3x3,
   ShoppingCart,
-  Minus,
-  Plus,
   Wind,
   Hand,
   Shield,
@@ -32,6 +30,7 @@ import { StarRating } from '../components/reviews/StarRating'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { PageBackLink } from '../components/ui/PageBackLink'
 import { PageLoader } from '../components/ui/PageLoader'
+import { QuantityStepper } from '../components/ui/QuantityStepper'
 import { useAuth } from '../context/AuthContext'
 import {
   addCartItem,
@@ -50,9 +49,11 @@ import {
 import type { MarketplaceApiProduct } from '../lib/marketplaceAdapter'
 import { toFabricProduct } from '../lib/marketplaceAdapter'
 import { ProductCard } from '../components/marketplace/product-card'
+import { ProductQaPanel } from '../components/marketplace/product-qa-panel'
+import { ProductComparePanel } from '../components/marketplace/product-compare-panel'
 import { formatNumber } from '../lib/format'
 
-const tabs = ['Overview', 'Reviews', 'Find Similar'] as const
+const tabs = ['Overview', 'Q&A', 'Reviews', 'Find Similar', 'Compare'] as const
 
 /** Static overview copy — pick a variation per product so pages don't look identical. */
 const OVERVIEW_VARIATIONS: Array<{
@@ -121,7 +122,7 @@ const unitSuffix = (unit: string) => {
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user, getAccessToken } = useAuth()
+  const { user, getAccessToken, buyerSetupCompleted, sellerSetupCompleted, loading: authLoading } = useAuth()
 
   const [product, setProduct] = useState<MarketplaceApiProduct | null>(null)
   const [favorited, setFavorited] = useState(false)
@@ -266,6 +267,14 @@ export function ProductDetailPage() {
     }
   }, [id])
 
+  if (!authLoading && user?.role === 'SELLER' && !sellerSetupCompleted) {
+    return <Navigate to="/seller/setup" replace />
+  }
+
+  if (!authLoading && user?.role === 'BUYER' && !buyerSetupCompleted) {
+    return <Navigate to="/buyer/setup" replace />
+  }
+
   if (notFound) return <Navigate to="/marketplace" replace />
 
   if (loading || !product) {
@@ -324,6 +333,18 @@ export function ProductDetailPage() {
     if (!requireAuth()) return
     if (product.variants?.length && !variant?._id) {
       setActionError('Please select a color before adding to cart.')
+      return
+    }
+    if (quantity < moq) {
+      setActionError(`Minimum order quantity is ${moq} ${unitSuffix(unit)}.`)
+      return
+    }
+    if (product.availableQuantity != null && quantity > product.availableQuantity) {
+      setActionError(
+        product.availableQuantity <= 0
+          ? 'This product is out of stock.'
+          : `Only ${product.availableQuantity} ${unitSuffix(unit)} available.`,
+      )
       return
     }
     setAdding(true)
@@ -444,7 +465,24 @@ export function ProductDetailPage() {
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 leading-relaxed mb-5">{product.description}</p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-3">{product.description}</p>
+
+            <div className="flex flex-wrap gap-2 mb-5">
+              <button
+                type="button"
+                onClick={() => setActiveTab('Q&A')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+              >
+                Ask about this fabric
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('Compare')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+              >
+                Compare with another
+              </button>
+            </div>
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5">
               {[
@@ -519,35 +557,17 @@ export function ProductDetailPage() {
               </div>
 
               <div className="mb-4">
-                <label className="text-sm text-gray-600 block mb-2">
+                <label htmlFor="product-qty" className="text-sm text-gray-600 block mb-2">
                   Quantity ({unitSuffix(unit)})
                 </label>
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    className="px-3.5 py-2.5 hover:bg-gray-50 transition-colors text-gray-600"
-                    onClick={() => setQuantity(Math.max(moq, quantity - 1))}
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus size={15} />
-                  </button>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) =>
-                      setQuantity(Math.max(moq, Number(e.target.value) || moq))
-                    }
-                    className="flex-1 text-center py-2.5 focus:outline-none text-sm font-medium min-w-0 border-x border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    className="px-3.5 py-2.5 hover:bg-gray-50 transition-colors text-gray-600"
-                    onClick={() => setQuantity(quantity + 1)}
-                    aria-label="Increase quantity"
-                  >
-                    <Plus size={15} />
-                  </button>
-                </div>
+                <QuantityStepper
+                  id="product-qty"
+                  value={quantity}
+                  min={moq}
+                  max={product.availableQuantity}
+                  disabled={!inStock && !inCart}
+                  onChange={setQuantity}
+                />
               </div>
 
               <div className="flex justify-between items-center mb-4">
@@ -636,6 +656,10 @@ export function ProductDetailPage() {
                 </ul>
               </div>
             </div>
+          )}
+
+          {activeTab === 'Q&A' && (
+            <ProductQaPanel productId={product._id} productName={product.name} />
           )}
 
           {activeTab === 'Reviews' && (
@@ -740,6 +764,13 @@ export function ProductDetailPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'Compare' && (
+            <ProductComparePanel
+              product={product}
+              onClose={() => setActiveTab('Overview')}
+            />
           )}
         </div>
       </Container>

@@ -24,6 +24,8 @@ export type MarketplaceApiProduct = {
     verified: boolean
     description?: string
   } | null
+  forYou?: boolean
+  forYouReason?: string
 }
 
 /** Maps API products into the existing FabricProduct card shape (design unchanged). */
@@ -58,6 +60,8 @@ export function toFabricProduct(product: MarketplaceApiProduct): FabricProduct {
     defaultColor: colors[0] || '#D4C4B0',
     deliveryDays: '5-7 days',
     badge: product.seller?.verified ? 'Verified Seller' : undefined,
+    forYou: Boolean(product.forYou),
+    forYouReason: product.forYouReason || '',
     onTimeDelivery: 96,
     features: ['Soft Hand-feel', 'Production Ready', 'Consistent Quality', 'Durable Weave'],
     whyChoose: [

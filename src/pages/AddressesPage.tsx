@@ -15,6 +15,7 @@ import {
   updateAddress,
   type Address,
 } from '../lib/api'
+import { StateSelect } from '../components/ui/StateSelect'
 
 const emptyForm = {
   name: '',
@@ -217,6 +218,9 @@ export function AddressesPage() {
             {addressFields.map(([key, label, required]) => {
               const showRequired =
                 required && Boolean(touched[key]) && !form[key].trim()
+              const fieldClass = `w-full px-3.5 py-2.5 text-sm border rounded-lg ${
+                showRequired ? 'border-red-300' : 'border-gray-200'
+              }`
               return (
                 <label key={key} className="block">
                   <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-medium text-gray-700">
@@ -230,15 +234,22 @@ export function AddressesPage() {
                       <span className="text-xs font-medium text-red-600">Required</span>
                     )}
                   </span>
-                  <input
-                    value={form[key]}
-                    onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
-                    onBlur={() => markTouched(key)}
-                    placeholder={label}
-                    className={`w-full px-3.5 py-2.5 text-sm border rounded-lg ${
-                      showRequired ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                  />
+                  {key === 'state' ? (
+                    <StateSelect
+                      value={form.state}
+                      onChange={(state) => setForm((prev) => ({ ...prev, state }))}
+                      onBlur={() => markTouched(key)}
+                      error={showRequired}
+                    />
+                  ) : (
+                    <input
+                      value={form[key]}
+                      onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                      onBlur={() => markTouched(key)}
+                      placeholder={label}
+                      className={fieldClass}
+                    />
+                  )}
                 </label>
               )
             })}

@@ -7,6 +7,7 @@ import {
   LogOut,
   Package,
   ShoppingBag,
+  UserRound,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
@@ -22,6 +23,7 @@ const navItems: Array<{
   soon?: boolean
 }> = [
   { to: '/seller/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/seller/profile', label: 'Profile', icon: UserRound },
   { to: '/seller/orders', label: 'Orders', icon: ShoppingBag },
   { to: '/seller/products', label: 'Products', icon: Package },
   { to: '/seller/drafts', label: 'Drafts', icon: FileText },

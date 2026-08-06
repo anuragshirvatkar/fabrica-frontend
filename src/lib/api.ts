@@ -1,5 +1,11 @@
 import type { MarketplaceApiProduct } from './marketplaceAdapter'
 import type { ApiProduct } from './productDrafts'
+import type { BuyerProfile, BuyerSetupInput } from './buyerPreferences'
+import type { SellerProfileData, SellerSetupInput } from './sellerPreferences'
+import type { OrderStatus } from './orderStatuses'
+
+export type { SellerSetupInput, SellerProfileData } from './sellerPreferences'
+export type { OrderStatus } from './orderStatuses'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -19,26 +25,10 @@ export type AuthUser = {
 export type AuthSyncResponse = {
   user: AuthUser
   sellerSetupCompleted: boolean
+  buyerSetupCompleted: boolean
 }
 
-export type SellerProfile = {
-  _id: string
-  userId: string
-  companyName: string
-  phone: string
-  gst: string
-  description: string
-  verified: boolean
-  createdAt?: string
-  updatedAt?: string
-}
-
-export type SellerSetupInput = {
-  companyName: string
-  phone: string
-  gst: string
-  description?: string
-}
+export type SellerProfile = SellerProfileData
 
 type ApiError = {
   success: false
@@ -50,6 +40,13 @@ type AuthApiSuccess = {
   success: true
   user: AuthUser
   sellerSetupCompleted: boolean
+  buyerSetupCompleted: boolean
+}
+
+type BuyerApiSuccess = {
+  success: true
+  buyer: BuyerProfile
+  buyerSetupCompleted?: boolean
 }
 
 type SellerApiSuccess = {
@@ -135,7 +132,18 @@ export async function syncAuth(token: string, role?: UserRole): Promise<AuthSync
   return {
     user: payload.user,
     sellerSetupCompleted: payload.sellerSetupCompleted,
+    buyerSetupCompleted: Boolean(payload.buyerSetupCompleted),
   }
+}
+
+export async function fetchSignInHint(email: string) {
+  return apiRequest<{ success: true; exists: boolean; providers: string[] }>(
+    '/api/auth/sign-in-hint',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    },
+  )
 }
 
 export async function fetchMe(token: string): Promise<AuthSyncResponse> {
@@ -147,7 +155,31 @@ export async function fetchMe(token: string): Promise<AuthSyncResponse> {
   return {
     user: payload.user,
     sellerSetupCompleted: payload.sellerSetupCompleted,
+    buyerSetupCompleted: Boolean(payload.buyerSetupCompleted),
   }
+}
+
+export async function setupBuyerProfile(token: string, data: BuyerSetupInput) {
+  return apiRequest<BuyerApiSuccess>('/api/buyers/setup', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(data),
+  })
+}
+
+export async function fetchBuyerProfile(token: string) {
+  return apiRequest<BuyerApiSuccess>('/api/buyers/me', {
+    method: 'GET',
+    token,
+  })
+}
+
+export async function updateBuyerProfile(token: string, data: BuyerSetupInput) {
+  return apiRequest<BuyerApiSuccess>('/api/buyers/me', {
+    method: 'PUT',
+    token,
+    body: JSON.stringify(data),
+  })
 }
 
 export async function setupSellerProfile(token: string, data: SellerSetupInput) {
@@ -174,6 +206,10 @@ export type SellerDashboard = {
   orderCount: number
   avgOrderValue: number
   publishedCount: number
+  draftCount: number
+  totalProductCount: number
+  pendingOrderCount: number
+  inventoryAlertCount: number
   series: Array<{
     key: string
     label: string
@@ -182,12 +218,30 @@ export type SellerDashboard = {
   }>
   recentOrders: Array<{
     _id: string
-    status: 'PLACED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
+    status: OrderStatus
     totalAmount: number
     createdAt?: string
     itemCount: number
     previewImage: string
     productName: string
+  }>
+  pendingOrders: Array<{
+    _id: string
+    status: OrderStatus
+    totalAmount: number
+    createdAt?: string
+    itemCount: number
+    previewImage: string
+    productName: string
+  }>
+  inventoryAlerts: Array<{
+    _id: string
+    name: string
+    availableQuantity: number
+    moq: number | null
+    unit: string
+    level: 'out' | 'low'
+    previewImage: string
   }>
 }
 
@@ -201,7 +255,7 @@ export async function fetchSellerDashboard(
   )
 }
 
-export async function updateSellerProfile(token: string, data: Partial<SellerSetupInput>) {
+export async function updateSellerProfile(token: string, data: SellerSetupInput) {
   return apiRequest<SellerApiSuccess>('/api/sellers/me', {
     method: 'PUT',
     token,
@@ -329,13 +383,13 @@ export type Address = {
   isDefault?: boolean
 }
 
-export type OrderStatus = 'PLACED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
-
 export type ApiOrder = {
   _id: string
   buyerId: string
   sellerId: string
   status: OrderStatus
+  statusLabel?: string
+  nextActionLabel?: string | null
   totalAmount: number
   shippingAddress: Address
   items: Array<{
@@ -348,6 +402,8 @@ export type ApiOrder = {
     quantity: number
     price: number
   }>
+  acceptedAt?: string | null
+  preparingAt?: string | null
   dispatchedAt?: string | null
   deliveredAt?: string | null
   cancelledAt?: string | null
@@ -634,11 +690,23 @@ export async function cancelOrder(token: string, id: string) {
   })
 }
 
-export async function dispatchOrder(token: string, id: string) {
-  return apiRequest<{ success: true; order: ApiOrder }>(`/api/orders/${id}/dispatch`, {
+export async function rejectOrder(token: string, id: string) {
+  return apiRequest<{ success: true; order: ApiOrder }>(`/api/orders/${id}/reject`, {
     method: 'POST',
     token,
   })
+}
+
+export async function advanceOrder(token: string, id: string) {
+  return apiRequest<{ success: true; order: ApiOrder }>(`/api/orders/${id}/advance`, {
+    method: 'POST',
+    token,
+  })
+}
+
+/** @deprecated Prefer advanceOrder */
+export async function dispatchOrder(token: string, id: string) {
+  return advanceOrder(token, id)
 }
 
 export async function fetchNotifications(token: string) {

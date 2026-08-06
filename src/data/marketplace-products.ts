@@ -22,6 +22,8 @@ export type FabricProduct = {
   defaultColor: string
   deliveryDays: string
   badge?: string
+  forYou?: boolean
+  forYouReason?: string
   onTimeDelivery: number
   features: string[]
   whyChoose: string[]

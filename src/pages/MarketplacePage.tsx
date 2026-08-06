@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { LayoutGrid, List, PackageOpen, SlidersHorizontal, X } from 'lucide-react'
 import { Container } from '../components/container'
 import { Navbar } from '../components/navbar'
@@ -131,7 +131,7 @@ function applySidebarFilters(products: FabricProduct[], filters: MarketplaceFilt
 }
 
 export function MarketplacePage() {
-  const { getAccessToken, user } = useAuth()
+  const { getAccessToken, user, buyerSetupCompleted, sellerSetupCompleted, loading: authLoading } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const searchKey = searchParams.toString()
   const aiMode = searchParams.get('ai') === 'true'
@@ -282,6 +282,14 @@ export function MarketplacePage() {
     setSearchParams(next, { replace: true })
   }
 
+  if (!authLoading && user?.role === 'SELLER' && !sellerSetupCompleted) {
+    return <Navigate to="/seller/setup" replace />
+  }
+
+  if (!authLoading && user?.role === 'BUYER' && !buyerSetupCompleted) {
+    return <Navigate to="/buyer/setup" replace />
+  }
+
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-white">
       <Navbar variant="solid" showActions showSearch searchQuery={query} />
@@ -334,7 +342,7 @@ export function MarketplacePage() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                       {displayProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard key={product.id} product={product} showMatchedTag />
                       ))}
                     </div>
                   )}
@@ -451,13 +459,13 @@ export function MarketplacePage() {
                   ) : viewMode === 'list' ? (
                     <div className="w-full flex flex-col gap-3">
                       {displayProducts.map((product) => (
-                        <ProductListCard key={product.id} product={product} />
+                        <ProductListCard key={product.id} product={product} showMatchedTag />
                       ))}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                       {displayProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard key={product.id} product={product} showMatchedTag />
                       ))}
                     </div>
                   )}

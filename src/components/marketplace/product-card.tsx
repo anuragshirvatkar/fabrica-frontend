@@ -5,17 +5,25 @@ import { Heart, Plus } from 'lucide-react'
 import { SignInContinueModal } from '../auth/SignInContinueModal'
 import { useAuth } from '../../context/AuthContext'
 import { addFavorite, removeFavorite } from '../../lib/api'
+import { ForYouBadge } from './for-you-badge'
 
 type ProductCardProps = {
   product: FabricProduct
   initialFavorited?: boolean
+  /** Marketplace-only personalization badge for logged-in buyers */
+  showMatchedTag?: boolean
 }
 
-export function ProductCard({ product, initialFavorited = false }: ProductCardProps) {
+export function ProductCard({
+  product,
+  initialFavorited = false,
+  showMatchedTag = false,
+}: ProductCardProps) {
   const { user, getAccessToken } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const [favorited, setFavorited] = useState(initialFavorited)
   const [saving, setSaving] = useState(false)
+  const matchedTag = showMatchedTag && user?.role === 'BUYER' && product.forYou
 
   const toggleFavorite = async (event: React.MouseEvent) => {
     event.preventDefault()
@@ -57,6 +65,9 @@ export function ProductCard({ product, initialFavorited = false }: ProductCardPr
               alt={product.name}
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
             />
+            {matchedTag && (
+              <ForYouBadge reason={product.forYouReason} className="absolute top-2 left-2 z-20" />
+            )}
             <button
               type="button"
               disabled={saving}

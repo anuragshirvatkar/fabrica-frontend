@@ -6,16 +6,19 @@ import { PageLoader } from '../ui/PageLoader'
 type ProtectedRouteProps = {
   children: React.ReactNode
   roles?: UserRole[]
-  /** When true, sellers without a Seller profile are redirected to setup */
+  /** Kept for route clarity; incomplete sellers are always redirected to setup */
   requireCompletedSellerSetup?: boolean
+  /** When true, buyers without onboarding prefs are redirected to setup */
+  requireCompletedBuyerSetup?: boolean
 }
 
 export function ProtectedRoute({
   children,
   roles,
-  requireCompletedSellerSetup = false,
+  requireCompletedSellerSetup: _requireCompletedSellerSetup = false,
+  requireCompletedBuyerSetup = false,
 }: ProtectedRouteProps) {
-  const { user, loading, sellerSetupCompleted } = useAuth()
+  const { user, loading, sellerSetupCompleted, buyerSetupCompleted, getRedirectPath } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -27,10 +30,20 @@ export function ProtectedRoute({
   }
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to={user.role === 'SELLER' ? '/seller/dashboard' : '/marketplace'} replace />
+    return (
+      <Navigate
+        to={getRedirectPath({ user, sellerSetupCompleted, buyerSetupCompleted })}
+        replace
+      />
+    )
   }
 
-  if (user.role === 'SELLER' && requireCompletedSellerSetup && !sellerSetupCompleted) {
+  // Incomplete seller profile is compulsory — block every route except setup.
+  if (
+    user.role === 'SELLER' &&
+    !sellerSetupCompleted &&
+    location.pathname !== '/seller/setup'
+  ) {
     return <Navigate to="/seller/setup" replace />
   }
 
@@ -38,32 +51,57 @@ export function ProtectedRoute({
     return <Navigate to="/seller/dashboard" replace />
   }
 
+  if (user.role === 'BUYER' && requireCompletedBuyerSetup && !buyerSetupCompleted) {
+    return <Navigate to="/buyer/setup" replace />
+  }
+
+  if (user.role === 'BUYER' && location.pathname === '/buyer/setup' && buyerSetupCompleted) {
+    return <Navigate to="/marketplace" replace />
+  }
+
   return <>{children}</>
 }
 
 export function GuestRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, sellerSetupCompleted, getRedirectPath } = useAuth()
+  const { user, loading, sellerSetupCompleted, buyerSetupCompleted, getRedirectPath } = useAuth()
 
   if (loading) {
     return <PageLoader fullScreen label="Loading" />
   }
 
   if (user) {
-    return <Navigate to={getRedirectPath({ user, sellerSetupCompleted })} replace />
+    return (
+      <Navigate
+        to={getRedirectPath({ user, sellerSetupCompleted, buyerSetupCompleted })}
+        replace
+      />
+    )
   }
 
   return <>{children}</>
 }
 
 export function VerifyEmailRoute({ children }: { children: React.ReactNode }) {
-  const { user, firebaseUser, loading, sellerSetupCompleted, getRedirectPath } = useAuth()
+  const {
+    user,
+    firebaseUser,
+    loading,
+    sellerSetupCompleted,
+    buyerSetupCompleted,
+    getRedirectPath,
+  } = useAuth()
 
   if (loading) {
     return <PageLoader fullScreen label="Loading" />
   }
 
   if (user) {
-    return <Navigate to={getRedirectPath({ user, sellerSetupCompleted })} replace />
+    return (
+      <Navigate
+        to={getRedirectPath({ user, sellerSetupCompleted, buyerSetupCompleted })}
+        replace
+      />
+    )
   }
 
   if (!firebaseUser) {

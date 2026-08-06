@@ -9,6 +9,7 @@ import { PageBackLink } from '../components/ui/PageBackLink'
 import { PageLoader } from '../components/ui/PageLoader'
 import { ReviewModal } from '../components/reviews/ReviewModal'
 import { StarRating } from '../components/reviews/StarRating'
+import { OrderProgressTrack } from '../components/orders/OrderProgressTrack'
 import { useAuth } from '../context/AuthContext'
 import {
   cancelOrder,
@@ -22,8 +23,14 @@ import {
   type ApiReview,
 } from '../lib/api'
 import { formatNumber } from '../lib/format'
+import { type OrderStatus } from '../lib/orderStatuses'
 
-const steps = ['PLACED', 'DISPATCHED', 'DELIVERED'] as const
+const LIVE_STATUSES = new Set<OrderStatus>([
+  'PENDING',
+  'ACCEPTED',
+  'PREPARING',
+  'READY_FOR_DISPATCH',
+])
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -81,10 +88,10 @@ export function OrderDetailPage() {
       }
       const result = await fetchOrder(token, id)
       setOrder(result.order)
-      if (result.order.status !== 'PLACED') {
+      if (result.order.status !== 'PENDING') {
         setCancelOpen(false)
       }
-      if (result.order.status === 'DELIVERED') {
+      if (result.order.status === 'COMPLETED') {
         const ids = [...new Set(result.order.items.map((item) => String(item.productId)))]
         await loadReviews(ids)
       } else {
@@ -106,7 +113,7 @@ export function OrderDetailPage() {
   // Keep status fresh while the order can still change (cancel window + auto-deliver).
   useEffect(() => {
     if (!order) return
-    if (order.status !== 'PLACED' && order.status !== 'DISPATCHED') return
+    if (!LIVE_STATUSES.has(order.status)) return
 
     const timer = window.setInterval(() => {
       void load({ silent: true })
@@ -136,7 +143,7 @@ export function OrderDetailPage() {
   }, [order?.status, order?._id, id])
 
   useEffect(() => {
-    if (order?.status === 'DELIVERED' && productIds.length) {
+    if (order?.status === 'COMPLETED' && productIds.length) {
       void loadReviews(productIds)
     }
   }, [order?.status, productIds.join(',')])
@@ -165,15 +172,7 @@ export function OrderDetailPage() {
     )
   }
 
-  const activeIndex =
-    order.status === 'CANCELLED'
-      ? -1
-      : Math.max(
-          0,
-          steps.indexOf(order.status as (typeof steps)[number]),
-        )
-
-  const canReview = user?.role === 'BUYER' && order.status === 'DELIVERED'
+  const canReview = user?.role === 'BUYER' && order.status === 'COMPLETED'
 
   return (
     <div className="flex-1 flex flex-col bg-[#f9f9f9]">
@@ -191,7 +190,7 @@ export function OrderDetailPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {user?.role === 'BUYER' && order.status === 'DELIVERED' && (
+            {user?.role === 'BUYER' && order.status === 'COMPLETED' && (
               <button
                 type="button"
                 disabled={downloading}
@@ -217,7 +216,7 @@ export function OrderDetailPage() {
                 </span>
               </button>
             )}
-            {user?.role === 'BUYER' && order.status === 'PLACED' && (
+            {user?.role === 'BUYER' && order.status === 'PENDING' && (
               <button
                 type="button"
                 onClick={() => setCancelOpen(true)}
@@ -240,44 +239,15 @@ export function OrderDetailPage() {
             This order was cancelled.
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 mb-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {steps.map((step, index) => (
-                <div key={step} className="flex-1 flex items-center gap-3 min-w-0">
-                  <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
-                      index <= activeIndex
-                        ? 'bg-black text-white'
-                        : 'bg-gray-100 text-gray-400'
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <span
-                    className={`text-sm truncate ${
-                      index <= activeIndex ? 'text-black font-medium' : 'text-gray-400'
-                    }`}
-                  >
-                    <span className="sm:hidden">
-                      {step === 'PLACED' ? 'Placed' : step === 'DISPATCHED' ? 'Dispatched' : 'Delivered'}
-                    </span>
-                    <span className="hidden sm:inline">
-                      {step === 'PLACED'
-                        ? 'Order Placed'
-                        : step === 'DISPATCHED'
-                          ? 'Order Dispatched'
-                          : 'Order Delivered'}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
-            {order.status === 'DISPATCHED' && (
-              <p className="text-xs text-gray-500 mt-4">
-                Delivery confirmation will update automatically shortly after dispatch.
-              </p>
-            )}
-          </div>
+          <OrderProgressTrack
+            status={order.status}
+            className="mb-6"
+            hint={
+              order.status === 'READY_FOR_DISPATCH'
+                ? 'This order will mark as completed automatically shortly after it is ready for dispatch.'
+                : undefined
+            }
+          />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

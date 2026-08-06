@@ -6,19 +6,23 @@ import { SignInContinueModal } from '../auth/SignInContinueModal'
 import { ListRecordCard } from '../ui/ListRecordCard'
 import { useAuth } from '../../context/AuthContext'
 import { addFavorite, removeFavorite } from '../../lib/api'
+import { ForYouBadge } from './for-you-badge'
 import { formatNumber } from '../../lib/format'
 
 export function ProductListCard({
   product,
   initialFavorited = false,
+  showMatchedTag = false,
 }: {
   product: FabricProduct
   initialFavorited?: boolean
+  showMatchedTag?: boolean
 }) {
   const { user, getAccessToken } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const [favorited, setFavorited] = useState(initialFavorited)
   const [saving, setSaving] = useState(false)
+  const matchedTag = showMatchedTag && user?.role === 'BUYER' && product.forYou
 
   const toggleFavorite = async (event: React.MouseEvent) => {
     event.preventDefault()
@@ -52,6 +56,11 @@ export function ProductListCard({
         to={`/marketplace/${product.id}`}
         image={product.image}
         imageAlt={product.name}
+        imageBadge={
+          matchedTag ? (
+            <ForYouBadge reason={product.forYouReason} className="absolute top-2 left-2 z-10" />
+          ) : null
+        }
         aside={
           <>
             <div className="sm:text-right">

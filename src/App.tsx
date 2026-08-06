@@ -13,8 +13,13 @@ import { MarketplacePage } from './pages/MarketplacePage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { SignUpPage } from './pages/SignUpPage'
 import { LoginPage } from './pages/LoginPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { SellerSetupPage } from './pages/SellerSetupPage'
+import { SellerProfilePage } from './pages/SellerProfilePage'
+import { BuyerSetupPage } from './pages/BuyerSetupPage'
+import { BuyerProfilePage } from './pages/BuyerProfilePage'
 import { SellerDashboardPage } from './pages/SellerDashboardPage'
 import { SellerProductsPage } from './pages/SellerProductsPage'
 import { SellerDraftsPage } from './pages/SellerDraftsPage'
@@ -58,6 +63,15 @@ export default function App() {
             }
           />
           <Route
+            path="/forgot-password"
+            element={
+              <GuestRoute>
+                <ForgotPasswordPage />
+              </GuestRoute>
+            }
+          />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route
             path="/verify-email"
             element={
               <VerifyEmailRoute>
@@ -67,9 +81,25 @@ export default function App() {
           />
 
           <Route
-            path="/cart"
+            path="/buyer/setup"
             element={
               <ProtectedRoute roles={['BUYER']}>
+                <BuyerSetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
+                <BuyerProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
                 <CartPage />
               </ProtectedRoute>
             }
@@ -77,7 +107,7 @@ export default function App() {
           <Route
             path="/checkout"
             element={
-              <ProtectedRoute roles={['BUYER']}>
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
                 <CheckoutPage />
               </ProtectedRoute>
             }
@@ -85,7 +115,7 @@ export default function App() {
           <Route
             path="/orders"
             element={
-              <ProtectedRoute roles={['BUYER']}>
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
                 <OrdersPage />
               </ProtectedRoute>
             }
@@ -93,7 +123,7 @@ export default function App() {
           <Route
             path="/orders/:id"
             element={
-              <ProtectedRoute roles={['BUYER']}>
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
                 <OrderDetailPage />
               </ProtectedRoute>
             }
@@ -101,7 +131,7 @@ export default function App() {
           <Route
             path="/favorites"
             element={
-              <ProtectedRoute roles={['BUYER']}>
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
                 <FavoritesPage />
               </ProtectedRoute>
             }
@@ -109,7 +139,7 @@ export default function App() {
           <Route
             path="/addresses"
             element={
-              <ProtectedRoute roles={['BUYER']}>
+              <ProtectedRoute roles={['BUYER']} requireCompletedBuyerSetup>
                 <AddressesPage />
               </ProtectedRoute>
             }
@@ -120,6 +150,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['SELLER']}>
                 <SellerSetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller/profile"
+            element={
+              <ProtectedRoute roles={['SELLER']} requireCompletedSellerSetup>
+                <SellerProfilePage />
               </ProtectedRoute>
             }
           />

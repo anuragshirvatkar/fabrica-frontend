@@ -24,6 +24,7 @@ export function ConfirmModal({
   loading = false,
   irreversible = false,
 }: ConfirmModalProps) {
+  const loadingLabel = confirmLabel.endsWith('…') ? confirmLabel : `${confirmLabel.replace(/\.*$/, '')}…`
   useEffect(() => {
     if (!open) return
 
@@ -111,7 +112,7 @@ export function ConfirmModal({
             onClick={onConfirm}
             className="px-4 py-2.5 text-sm font-semibold rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-600/25 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Deleting…' : confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

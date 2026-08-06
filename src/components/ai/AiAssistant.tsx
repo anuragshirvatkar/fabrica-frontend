@@ -87,7 +87,9 @@ export function AiAssistant() {
   const productIdFromPath = location.pathname.match(/^\/marketplace\/([^/]+)/)?.[1] || null
 
   const hideForSeller =
-    user?.role === 'SELLER' || location.pathname.startsWith('/seller')
+    user?.role === 'SELLER' ||
+    location.pathname.startsWith('/seller') ||
+    location.pathname.startsWith('/buyer/setup')
 
   useEffect(() => {
     if (!open) return

@@ -8,26 +8,48 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  EmailAuthProvider,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   reload,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updatePassword,
   verifyBeforeUpdateEmail,
+  verifyPasswordResetCode,
   type User as FirebaseUser,
 } from 'firebase/auth'
 import { auth, googleProvider } from '../lib/firebase'
-import { fetchMe, syncAuth, type AuthSyncResponse, type AuthUser, type UserRole } from '../lib/api'
+import {
+  fetchMe,
+  fetchSellerProfile,
+  fetchSignInHint,
+  syncAuth,
+  type AuthSyncResponse,
+  type AuthUser,
+  type UserRole,
+} from '../lib/api'
 import { authStorage } from '../lib/authStorage'
-import { getFirebaseAuthErrorMessage } from '../lib/firebaseErrors'
+import {
+  getFirebaseAuthErrorMessage,
+  messageForSignInProviders,
+  resolveEmailPasswordLoginMessage,
+  type EmailLoginProbe,
+} from '../lib/firebaseErrors'
 import { registerPushNotifications } from '../lib/messaging'
+import { isSellerProfileComplete } from '../lib/sellerPreferences'
 
 type AuthContextValue = {
   user: AuthUser | null
   firebaseUser: FirebaseUser | null
   sellerSetupCompleted: boolean
+  buyerSetupCompleted: boolean
   loading: boolean
   registerWithEmail: (email: string, password: string, role: UserRole) => Promise<void>
   loginWithEmail: (email: string, password: string) => Promise<AuthSyncResponse>
@@ -35,14 +57,42 @@ type AuthContextValue = {
   completeEmailVerification: () => Promise<AuthSyncResponse>
   resendVerificationEmail: () => Promise<void>
   changeEmail: (newEmail: string) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  verifyPasswordReset: (oobCode: string) => Promise<string>
+  completePasswordReset: (oobCode: string, newPassword: string) => Promise<void>
   logout: () => Promise<void>
   getAccessToken: () => Promise<string | null>
   markSellerSetupCompleted: () => void
+  markBuyerSetupCompleted: () => void
   refreshAuthProfile: () => Promise<AuthSyncResponse | null>
   getRedirectPath: (result: AuthSyncResponse) => string
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+
+/** Backend flag can lag; verify seller fields so incomplete/legacy profiles always go to setup. */
+async function withVerifiedSellerSetup(
+  result: AuthSyncResponse,
+  token: string,
+): Promise<AuthSyncResponse> {
+  if (result.user.role !== 'SELLER') return result
+
+  if (!result.sellerSetupCompleted) {
+    return { ...result, sellerSetupCompleted: false }
+  }
+
+  try {
+    const profile = await fetchSellerProfile(token)
+    return {
+      ...result,
+      sellerSetupCompleted: isSellerProfileComplete(profile.seller),
+    }
+  } catch {
+    // No seller doc yet → must complete setup
+    return { ...result, sellerSetupCompleted: false }
+  }
+}
 
 async function persistAndSync(firebaseUser: FirebaseUser, role?: UserRole) {
   const token = await firebaseUser.getIdToken(true)
@@ -51,23 +101,27 @@ async function persistAndSync(firebaseUser: FirebaseUser, role?: UserRole) {
   const result = await syncAuth(token, role ?? authStorage.getPendingRole() ?? undefined)
   authStorage.clearPendingRole()
   authStorage.clearPendingEmail()
-  return result
+  return withVerifiedSellerSetup(result, token)
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
-  const [sellerSetupCompleted, setSellerSetupCompleted] = useState(true)
+  const [sellerSetupCompleted, setSellerSetupCompleted] = useState(false)
+  const [buyerSetupCompleted, setBuyerSetupCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const applyAuthResult = useCallback((result: AuthSyncResponse) => {
     setUser(result.user)
     setSellerSetupCompleted(result.sellerSetupCompleted)
+    setBuyerSetupCompleted(result.buyerSetupCompleted)
     return result
   }, [])
 
   const getRedirectPath = useCallback((result: AuthSyncResponse) => {
-    if (result.user.role === 'BUYER') return '/marketplace'
+    if (result.user.role === 'BUYER') {
+      return result.buyerSetupCompleted ? '/marketplace' : '/buyer/setup'
+    }
     if (!result.sellerSetupCompleted) return '/seller/setup'
     return '/seller/dashboard'
   }, [])
@@ -78,7 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!current) {
         setUser(null)
-        setSellerSetupCompleted(true)
+        setSellerSetupCompleted(false)
+        setBuyerSetupCompleted(false)
         authStorage.clearToken()
         setLoading(false)
         return
@@ -95,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authStorage.setToken(token)
 
         try {
-          const profile = await fetchMe(token)
+          const profile = await withVerifiedSellerSetup(await fetchMe(token), token)
           applyAuthResult(profile)
           void registerPushNotifications(token)
         } catch (error) {
@@ -115,14 +170,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyAuthResult])
 
   const registerWithEmail = useCallback(async (email: string, password: string, role: UserRole) => {
+    const normalizedEmail = email.trim()
     try {
-      const credential = await createUserWithEmailAndPassword(auth, email, password)
+      const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
       authStorage.setPendingRole(role)
-      authStorage.setPendingEmail(email)
+      authStorage.setPendingEmail(normalizedEmail)
 
       try {
         await sendEmailVerification(credential.user)
-        console.log('[auth:register] Firebase verification email sent', { email })
+        console.log('[auth:register] Firebase verification email sent', { email: normalizedEmail })
       } catch (emailError) {
         console.error('[auth:register] Firebase verification email failed', emailError)
         throw new Error(getFirebaseAuthErrorMessage(emailError))
@@ -131,17 +187,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error instanceof Error && !String((error as { code?: string }).code || '').startsWith('auth/')) {
         throw error
       }
+
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as { code: string }).code)
+          : ''
+
+      if (code === 'auth/email-already-in-use') {
+        try {
+          let providers = await fetchSignInMethodsForEmail(auth, normalizedEmail)
+          if (!providers.length) {
+            const hint = await fetchSignInHint(normalizedEmail)
+            providers = hint.providers
+          }
+          const googleOnly = messageForSignInProviders(providers)
+          if (googleOnly?.includes('Google')) {
+            throw new Error(
+              'This email is already registered with Google. Please use Continue with Google.',
+            )
+          }
+        } catch (hintError) {
+          if (
+            hintError instanceof Error &&
+            hintError.message.includes('Google')
+          ) {
+            throw hintError
+          }
+        }
+      }
+
       throw new Error(getFirebaseAuthErrorMessage(error))
     }
   }, [])
 
   const loginWithEmail = useCallback(
     async (email: string, password: string) => {
+      const normalizedEmail = email.trim()
       try {
-        const credential = await signInWithEmailAndPassword(auth, email, password)
+        const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password)
 
         if (!credential.user.emailVerified) {
-          authStorage.setPendingEmail(email)
+          authStorage.setPendingEmail(normalizedEmail)
           try {
             await sendEmailVerification(credential.user)
           } catch {
@@ -160,6 +246,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error instanceof Error && (error as Error & { code?: string }).code === 'EMAIL_NOT_VERIFIED') {
           throw error
         }
+
+        const code =
+          typeof error === 'object' && error && 'code' in error
+            ? String((error as { code: string }).code)
+            : ''
+
+        if (
+          code === 'auth/invalid-credential' ||
+          code === 'auth/wrong-password' ||
+          code === 'auth/user-not-found'
+        ) {
+          let probe: EmailLoginProbe = { exists: null, providers: [] }
+
+          try {
+            const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail)
+            // Empty list is unreliable when Firebase email enumeration protection is on.
+            if (methods.length > 0) {
+              probe = { exists: true, providers: methods }
+            }
+          } catch {
+            // ignore — try backend hint
+          }
+
+          if (probe.exists === null) {
+            try {
+              const hint = await fetchSignInHint(normalizedEmail)
+              probe = {
+                exists: hint.exists,
+                providers: hint.providers || [],
+              }
+            } catch {
+              // leave exists null → show wrong-password, not "no account"
+            }
+          }
+
+          throw new Error(resolveEmailPasswordLoginMessage(error, probe))
+        }
+
         throw new Error(getFirebaseAuthErrorMessage(error))
       }
     },
@@ -261,12 +385,125 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const current = auth.currentUser
+    if (!current?.email) {
+      throw new Error('No active session. Please sign in again.')
+    }
+
+    const hasPasswordProvider = current.providerData.some(
+      (provider) => provider.providerId === 'password',
+    )
+    if (!hasPasswordProvider) {
+      throw new Error('Password can only be changed for email sign-in accounts.')
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(current.email, currentPassword)
+      await reauthenticateWithCredential(current, credential)
+      await updatePassword(current, newPassword)
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as { code: string }).code)
+          : ''
+
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        throw new Error('Current password is not right. Please try again.')
+      }
+      if (code === 'auth/weak-password') {
+        throw new Error(
+          'Password must be at least 6 characters and include 1 number and 1 special character.',
+        )
+      }
+      throw new Error(getFirebaseAuthErrorMessage(error))
+    }
+  }, [])
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      throw new Error('Please enter your email address.')
+    }
+
+    try {
+      let providers: string[] = []
+      try {
+        providers = await fetchSignInMethodsForEmail(auth, normalizedEmail)
+      } catch {
+        providers = []
+      }
+      if (!providers.length) {
+        try {
+          const hint = await fetchSignInHint(normalizedEmail)
+          providers = hint.exists ? hint.providers : []
+          if (!hint.exists) {
+            throw new Error('No account found with this email. Please sign up.')
+          }
+        } catch (hintError) {
+          if (hintError instanceof Error && hintError.message.includes('sign up')) {
+            throw hintError
+          }
+        }
+      }
+
+      const hasPassword = providers.includes('password')
+      const hasGoogle = providers.includes('google.com')
+      if (hasGoogle && !hasPassword) {
+        throw new Error(
+          'This account was created with Google. Please use Continue with Google to sign in.',
+        )
+      }
+      if (providers.length && !hasPassword) {
+        throw new Error(
+          'This account does not use an email password. Please sign in with Google.',
+        )
+      }
+
+      await sendPasswordResetEmail(auth, normalizedEmail, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      })
+    } catch (error) {
+      if (error instanceof Error && !String((error as { code?: string }).code || '').startsWith('auth/')) {
+        throw error
+      }
+      throw new Error(getFirebaseAuthErrorMessage(error))
+    }
+  }, [])
+
+  const verifyPasswordReset = useCallback(async (oobCode: string) => {
+    try {
+      return await verifyPasswordResetCode(auth, oobCode)
+    } catch (error) {
+      throw new Error(getFirebaseAuthErrorMessage(error))
+    }
+  }, [])
+
+  const completePasswordReset = useCallback(async (oobCode: string, newPassword: string) => {
+    try {
+      await confirmPasswordReset(auth, oobCode, newPassword)
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as { code: string }).code)
+          : ''
+      if (code === 'auth/weak-password') {
+        throw new Error(
+          'Password must be at least 6 characters and include 1 number and 1 special character.',
+        )
+      }
+      throw new Error(getFirebaseAuthErrorMessage(error))
+    }
+  }, [])
+
   const logout = useCallback(async () => {
     await signOut(auth)
     authStorage.clearAll()
     setUser(null)
     setFirebaseUser(null)
-    setSellerSetupCompleted(true)
+    setSellerSetupCompleted(false)
+    setBuyerSetupCompleted(false)
   }, [])
 
   const getAccessToken = useCallback(async () => {
@@ -281,10 +518,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSellerSetupCompleted(true)
   }, [])
 
+  const markBuyerSetupCompleted = useCallback(() => {
+    setBuyerSetupCompleted(true)
+  }, [])
+
   const refreshAuthProfile = useCallback(async () => {
     const token = await getAccessToken()
     if (!token) return null
-    const profile = await fetchMe(token)
+    const profile = await withVerifiedSellerSetup(await fetchMe(token), token)
     return applyAuthResult(profile)
   }, [applyAuthResult, getAccessToken])
 
@@ -293,6 +534,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       firebaseUser,
       sellerSetupCompleted,
+      buyerSetupCompleted,
       loading,
       registerWithEmail,
       loginWithEmail,
@@ -300,9 +542,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeEmailVerification,
       resendVerificationEmail,
       changeEmail,
+      changePassword,
+      requestPasswordReset,
+      verifyPasswordReset,
+      completePasswordReset,
       logout,
       getAccessToken,
       markSellerSetupCompleted,
+      markBuyerSetupCompleted,
       refreshAuthProfile,
       getRedirectPath,
     }),
@@ -310,6 +557,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       firebaseUser,
       sellerSetupCompleted,
+      buyerSetupCompleted,
       loading,
       registerWithEmail,
       loginWithEmail,
@@ -317,9 +565,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeEmailVerification,
       resendVerificationEmail,
       changeEmail,
+      changePassword,
+      requestPasswordReset,
+      verifyPasswordReset,
+      completePasswordReset,
       logout,
       getAccessToken,
       markSellerSetupCompleted,
+      markBuyerSetupCompleted,
       refreshAuthProfile,
       getRedirectPath,
     ],

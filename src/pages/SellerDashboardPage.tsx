@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  AlertTriangle,
   CalendarDays,
   ChevronDown,
   CreditCard,
@@ -14,15 +15,12 @@ import {
   Store,
 } from 'lucide-react'
 import { SellerShell } from '../components/seller/SellerShell'
-import { EditProfileModal } from '../components/seller/EditProfileModal'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoader } from '../components/ui/PageLoader'
-import { SuccessModal } from '../components/ui/SuccessModal'
 import { useAuth } from '../context/AuthContext'
 import {
   fetchSellerDashboard,
   fetchSellerProfile,
-  updateSellerProfile,
   type SellerDashboard,
   type SellerDashboardRange,
   type SellerProfile,
@@ -37,9 +35,11 @@ const RANGE_OPTIONS: Array<{ value: SellerDashboardRange; label: string }> = [
 ]
 
 const statusLabel: Record<string, string> = {
-  PLACED: 'Placed',
-  DISPATCHED: 'Dispatched',
-  DELIVERED: 'Delivered',
+  PENDING: 'Pending',
+  ACCEPTED: 'Accepted',
+  PREPARING: 'Preparing',
+  READY_FOR_DISPATCH: 'Ready for Dispatch',
+  COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 }
 
@@ -60,8 +60,10 @@ function getFirstName(companyName?: string | null, email?: string | null) {
 }
 
 function statusStyles(status: string) {
-  if (status === 'DELIVERED') return 'bg-emerald-50 text-emerald-700'
-  if (status === 'DISPATCHED') return 'bg-sky-50 text-sky-700'
+  if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700'
+  if (status === 'READY_FOR_DISPATCH') return 'bg-indigo-50 text-indigo-700'
+  if (status === 'PREPARING') return 'bg-sky-50 text-sky-700'
+  if (status === 'ACCEPTED') return 'bg-violet-50 text-violet-700'
   if (status === 'CANCELLED') return 'bg-red-50 text-red-700'
   return 'bg-amber-50 text-amber-700'
 }
@@ -88,10 +90,6 @@ export function SellerDashboardPage() {
   const [rangeOpen, setRangeOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [dashLoading, setDashLoading] = useState(true)
-  const [editOpen, setEditOpen] = useState(false)
-  const [successOpen, setSuccessOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [editError, setEditError] = useState('')
   const rangeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -135,28 +133,6 @@ export function SellerDashboardPage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
-
-  const handleSaveProfile = async (data: {
-    companyName: string
-    phone: string
-    gst: string
-    description: string
-  }) => {
-    setSaving(true)
-    setEditError('')
-    try {
-      const token = await getAccessToken()
-      if (!token) throw new Error('Please sign in again.')
-      const result = await updateSellerProfile(token, data)
-      setSeller(result.seller)
-      setEditOpen(false)
-      setSuccessOpen(true)
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Failed to update profile.')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const series = dashboard?.series || []
 
@@ -271,10 +247,7 @@ export function SellerDashboardPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setEditError('')
-                        setEditOpen(true)
-                      }}
+                      onClick={() => navigate('/seller/profile')}
                       className="inline-flex items-center gap-2 self-start px-3.5 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-[#f5f3ef] transition-colors"
                     >
                       <Pencil size={14} />
@@ -316,14 +289,22 @@ export function SellerDashboardPage() {
           />
           <StatCard
             title="Products"
-            value={dashLoading ? '—' : formatNumber(dashboard?.publishedCount || 0) || '0'}
-            hint="Published listings"
+            value={
+              dashLoading
+                ? '—'
+                : formatNumber(dashboard?.totalProductCount || 0) || '0'
+            }
+            hint={
+              dashLoading
+                ? 'Total vs active'
+                : `${formatNumber(dashboard?.publishedCount || 0) || '0'} active · ${formatNumber(dashboard?.draftCount || 0) || '0'} drafts`
+            }
             icon={Package}
             tone="stone"
           />
         </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-4 mb-8">
+        <section className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-4 mb-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <h3 className="font-serif text-xl font-semibold text-black">Sales Overview</h3>
@@ -403,6 +384,120 @@ export function SellerDashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <div>
+                <h3 className="font-serif text-xl font-semibold text-black">Needs action</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {dashLoading
+                    ? 'Pending orders awaiting acceptance'
+                    : `${formatNumber(dashboard?.pendingOrderCount || 0) || '0'} pending order${(dashboard?.pendingOrderCount || 0) === 1 ? '' : 's'}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/seller/orders')}
+                className="text-sm font-medium text-gray-500 hover:text-black shrink-0"
+              >
+                View All
+              </button>
+            </div>
+
+            {dashLoading ? (
+              <PageLoader label="Loading pending" />
+            ) : !dashboard?.pendingOrders?.length ? (
+              <EmptyState
+                compact
+                icon={ShoppingBag}
+                title="All clear"
+                description="No pending orders waiting for acceptance."
+              />
+            ) : (
+              <div className="space-y-1">
+                {dashboard.pendingOrders.map((order) => (
+                  <OrderRow
+                    key={order._id}
+                    order={order}
+                    onClick={() => navigate(`/seller/orders/${order._id}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-8">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <div>
+                <h3 className="font-serif text-xl font-semibold text-black">Inventory alerts</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {dashLoading
+                    ? 'Low or out-of-stock published products'
+                    : `${formatNumber(dashboard?.inventoryAlertCount || 0) || '0'} listing${(dashboard?.inventoryAlertCount || 0) === 1 ? '' : 's'} need attention`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/seller/products')}
+                className="text-sm font-medium text-gray-500 hover:text-black shrink-0"
+              >
+                Products
+              </button>
+            </div>
+
+            {dashLoading ? (
+              <PageLoader label="Loading inventory" />
+            ) : !dashboard?.inventoryAlerts?.length ? (
+              <EmptyState
+                compact
+                icon={Package}
+                title="Stock looks healthy"
+                description="No published products are low or out of stock."
+              />
+            ) : (
+              <div className="space-y-1">
+                {dashboard.inventoryAlerts.map((item) => (
+                  <button
+                    key={item._id}
+                    type="button"
+                    onClick={() => navigate(`/seller/products/${item._id}/edit`)}
+                    className="w-full flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0 text-left hover:bg-[#fafafa] rounded-lg px-1 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-[#f5f3ef] border border-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+                      {item.previewImage ? (
+                        <img
+                          src={item.previewImage}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <AlertTriangle size={16} className="text-amber-600" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-black truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {item.availableQuantity <= 0
+                          ? 'Out of stock'
+                          : `${formatNumber(item.availableQuantity)} ${item.unit}${item.availableQuantity === 1 ? '' : 's'} left`}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
+                        item.level === 'out'
+                          ? 'bg-red-50 text-red-700'
+                          : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {item.level === 'out' ? 'Out' : 'Low'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-serif text-xl font-semibold text-black">Recent Orders</h3>
               <button
@@ -426,45 +521,11 @@ export function SellerDashboardPage() {
             ) : (
               <div className="space-y-1">
                 {dashboard.recentOrders.map((order) => (
-                  <button
+                  <OrderRow
                     key={order._id}
-                    type="button"
+                    order={order}
                     onClick={() => navigate(`/seller/orders/${order._id}`)}
-                    className="w-full flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0 text-left hover:bg-[#fafafa] rounded-lg px-1 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-[#f5f3ef] border border-gray-100 overflow-hidden flex items-center justify-center shrink-0">
-                      {order.previewImage ? (
-                        <img
-                          src={order.previewImage}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Package size={16} className="text-gray-600" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-black">
-                        #{String(order._id).slice(-6).toUpperCase()}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {order.productName}
-                        {formatOrderDate(order.createdAt)
-                          ? ` · ${formatOrderDate(order.createdAt)}`
-                          : ''}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-black mb-1">
-                        ₹{formatNumber(order.totalAmount)}
-                      </p>
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusStyles(order.status)}`}
-                      >
-                        {statusLabel[order.status] || order.status}
-                      </span>
-                    </div>
-                  </button>
+                  />
                 ))}
               </div>
             )}
@@ -472,29 +533,48 @@ export function SellerDashboardPage() {
         </section>
 
       </main>
-
-      {seller && (
-        <EditProfileModal
-          open={editOpen}
-          seller={seller}
-          email={user?.email}
-          saving={saving}
-          error={editError}
-          onClose={() => {
-            if (!saving) setEditOpen(false)
-          }}
-          onSave={handleSaveProfile}
-        />
-      )}
-
-      <SuccessModal
-        open={successOpen}
-        onClose={() => setSuccessOpen(false)}
-        title="Profile updated"
-        message="Your business details have been saved successfully."
-        buttonLabel="Done"
-      />
     </SellerShell>
+  )
+}
+
+function OrderRow({
+  order,
+  onClick,
+}: {
+  order: SellerDashboard['recentOrders'][number]
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0 text-left hover:bg-[#fafafa] rounded-lg px-1 transition-colors"
+    >
+      <div className="w-10 h-10 rounded-lg bg-[#f5f3ef] border border-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+        {order.previewImage ? (
+          <img src={order.previewImage} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Package size={16} className="text-gray-600" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-black">
+          #{String(order._id).slice(-6).toUpperCase()}
+        </p>
+        <p className="text-xs text-gray-500 truncate">
+          {order.productName}
+          {formatOrderDate(order.createdAt) ? ` · ${formatOrderDate(order.createdAt)}` : ''}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-sm font-semibold text-black mb-1">₹{formatNumber(order.totalAmount)}</p>
+        <span
+          className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusStyles(order.status)}`}
+        >
+          {statusLabel[order.status] || order.status}
+        </span>
+      </div>
+    </button>
   )
 }
 
