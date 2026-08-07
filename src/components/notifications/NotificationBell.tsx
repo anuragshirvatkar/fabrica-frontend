@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -11,6 +11,9 @@ import {
 import { playNotificationSound } from '../../lib/notificationSound'
 import { emitOrderNotification } from '../../lib/orderRealtime'
 
+const PANEL_MARGIN = 12
+const PANEL_MAX_WIDTH = 320
+
 export function NotificationBell({
   className = '',
 }: {
@@ -21,6 +24,9 @@ export function NotificationBell({
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<ApiNotification[]>([])
   const [unread, setUnread] = useState(0)
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(
+    null,
+  )
   const ref = useRef<HTMLDivElement>(null)
   const knownIdsRef = useRef<Set<string> | null>(null)
 
@@ -94,6 +100,34 @@ export function NotificationBell({
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelPos(null)
+      return
+    }
+
+    const updatePosition = () => {
+      const anchor = ref.current
+      if (!anchor) return
+      const rect = anchor.getBoundingClientRect()
+      const width = Math.min(PANEL_MAX_WIDTH, window.innerWidth - PANEL_MARGIN * 2)
+      let left = rect.right - width
+      left = Math.max(
+        PANEL_MARGIN,
+        Math.min(left, window.innerWidth - PANEL_MARGIN - width),
+      )
+      setPanelPos({ top: rect.bottom + 8, left, width })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [open])
+
   if (!user) return null
 
   return (
@@ -130,8 +164,11 @@ export function NotificationBell({
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] max-h-[min(24rem,70dvh)] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl z-50">
+      {open && panelPos && (
+        <div
+          className="fixed max-h-[min(24rem,70dvh)] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl z-[60]"
+          style={{ top: panelPos.top, left: panelPos.left, width: panelPos.width }}
+        >
           <div className="px-4 py-3 border-b border-gray-100">
             <p className="text-sm font-semibold text-black">Notifications</p>
           </div>

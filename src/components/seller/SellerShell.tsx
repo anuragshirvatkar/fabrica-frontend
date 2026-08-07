@@ -169,7 +169,7 @@ export function SellerShell({
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg py-1.5 z-30">
+                <div className="absolute right-0 mt-2 w-48 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-lg py-1.5 z-30">
                   <button
                     type="button"
                     onClick={async () => {

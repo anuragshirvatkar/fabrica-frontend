@@ -188,7 +188,7 @@ export function SellerDashboardPage() {
               <ChevronDown size={15} className="text-gray-400" />
             </button>
             {rangeOpen && (
-              <div className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-20">
+              <div className="absolute right-0 mt-2 w-44 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-20">
                 {RANGE_OPTIONS.map((option) => (
                   <button
                     key={option.value}

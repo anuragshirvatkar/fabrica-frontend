@@ -86,7 +86,7 @@ function UserMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-52 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-52 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50">
           <div className="px-3.5 py-3 border-b border-gray-100">
             <p className="text-xs text-gray-500">Signed in as</p>
             <p className="text-sm font-medium text-black truncate">{user.email}</p>
