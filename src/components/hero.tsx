@@ -3,12 +3,9 @@ import { Link } from 'react-router-dom'
 import { Container } from './container'
 import { ArrowRight, Play } from 'lucide-react'
 import { SearchBar } from './search-bar'
+import { HERO_IMAGES } from '../lib/staticAssets'
 
-const heroImages = [
-  '/images/landing-page-image.png',
-  '/images/landing-page-image3.png',
-  '/images/landing-page-image2.png',
-]
+const heroImages = HERO_IMAGES
 
 const SLIDE_DURATION = 2800
 const DISPLAY_DURATION = 10000

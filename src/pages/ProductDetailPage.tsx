@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
   Heart,
@@ -19,6 +19,7 @@ import {
   Info,
   Pencil,
   Trash2,
+  Loader2,
   type LucideIcon,
 } from 'lucide-react'
 import { Container } from '../components/container'
@@ -131,6 +132,9 @@ export function ProductDetailPage() {
   const [authOpen, setAuthOpen] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState(0)
+  const [colorImagesLoading, setColorImagesLoading] = useState(false)
+  const [gstInfoOpen, setGstInfoOpen] = useState(false)
+  const gstInfoRef = useRef<HTMLDivElement>(null)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('Overview')
   const [actionError, setActionError] = useState('')
@@ -223,6 +227,58 @@ export function ProductDetailPage() {
   useEffect(() => {
     setActiveImage(0)
   }, [selectedVariant])
+
+  useEffect(() => {
+    if (!colorImagesLoading) return
+    let cancelled = false
+    const urls = thumbnails.filter(Boolean)
+    if (!urls.length) {
+      setColorImagesLoading(false)
+      return
+    }
+
+    void Promise.all(
+      urls.map(
+        (src) =>
+          new Promise<void>((resolve) => {
+            const img = new window.Image()
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+            img.src = src
+          }),
+      ),
+    ).then(() => {
+      if (!cancelled) setColorImagesLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [colorImagesLoading, thumbnails])
+
+  useEffect(() => {
+    if (!gstInfoOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (!gstInfoRef.current?.contains(event.target as Node)) {
+        setGstInfoOpen(false)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setGstInfoOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [gstInfoOpen])
+
+  const handleSelectVariant = (index: number) => {
+    if (index === selectedVariant) return
+    setColorImagesLoading(true)
+    setSelectedVariant(index)
+  }
 
   const loadReviews = async () => {
     if (!id) return
@@ -411,16 +467,29 @@ export function ProductDetailPage() {
                 <img
                   src={thumbnails[activeImage]}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover transition-opacity duration-200 ${
+                    colorImagesLoading ? 'opacity-40' : 'opacity-100'
+                  }`}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
                   No image
                 </div>
               )}
+              {colorImagesLoading && (
+                <div
+                  className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white/55 backdrop-blur-[1px]"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Loading color images"
+                >
+                  <Loader2 size={28} className="animate-spin text-gray-700" />
+                  <span className="text-xs font-medium text-gray-600">Loading images…</span>
+                </div>
+              )}
               <button
                 type="button"
-                className="absolute top-3 right-3 w-10 h-10 bg-white rounded-md flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
+                className="absolute top-3 right-3 z-20 w-10 h-10 bg-white rounded-md flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
                 aria-label="Expand image"
               >
                 <Maximize2 size={16} className="text-gray-600" />
@@ -512,7 +581,7 @@ export function ProductDetailPage() {
                   <button
                     key={entry._id || entry.colorHex || i}
                     type="button"
-                    onClick={() => setSelectedVariant(i)}
+                    onClick={() => handleSelectVariant(i)}
                     className={`w-7 h-7 rounded-full border-2 transition-all ${
                       selectedVariant === i
                         ? 'border-black ring-1 ring-black ring-offset-1'
@@ -532,9 +601,29 @@ export function ProductDetailPage() {
                 ₹{formatNumber(price)}
                 <span className="text-base font-normal text-gray-500"> / {unit}</span>
               </p>
-              <div className="flex items-center gap-1.5 mt-1 mb-4">
+              <div className="relative flex items-center gap-1.5 mt-1 mb-4" ref={gstInfoRef}>
                 <span className="text-xs text-gray-500">Price (Inclusive of GST)</span>
-                <Info size={13} className="text-gray-400" />
+                <button
+                  type="button"
+                  onClick={() => setGstInfoOpen((open) => !open)}
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-[#f5f3ef] transition-colors"
+                  aria-label="GST information"
+                  aria-expanded={gstInfoOpen}
+                >
+                  <Info size={13} />
+                </button>
+                {gstInfoOpen && (
+                  <div
+                    role="tooltip"
+                    className="absolute left-0 top-full mt-2 z-30 w-[min(18rem,calc(100vw-2.5rem))] rounded-xl border border-gray-200 bg-white p-3.5 shadow-xl"
+                  >
+                    <p className="text-xs font-semibold text-black mb-1">Inclusive of GST</p>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      The price shown already includes Goods and Services Tax (GST). No extra tax
+                      will be added on this item at checkout.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-gray-100 text-sm">

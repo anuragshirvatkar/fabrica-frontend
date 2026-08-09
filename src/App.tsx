@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { AiAssistant } from './components/ai/AiAssistant'
+import { StaticAssetsGate } from './components/StaticAssetsGate'
 import {
   GuestRoute,
   ProtectedRoute,
@@ -38,8 +39,9 @@ import { SellerPaymentDetailPage } from './pages/SellerPaymentDetailPage'
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <StaticAssetsGate>
+        <BrowserRouter>
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
@@ -236,6 +238,7 @@ export default function App() {
         </Routes>
         <AiAssistant />
       </BrowserRouter>
+      </StaticAssetsGate>
     </AuthProvider>
   )
 }
