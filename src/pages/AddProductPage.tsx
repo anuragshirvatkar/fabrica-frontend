@@ -118,9 +118,11 @@ export function AddProductPage() {
         const result = await fetchSellerProduct(token, productId)
         if (cancelled) return
         const mapped = apiProductToForm(result.product)
-        setForm(mapped)
+        // Edit route should always start on Basic Info, not the Review step.
+        const nextForm = routeProductId ? { ...mapped, step: 1 as const } : mapped
+        setForm(nextForm)
         lastSavedSnapshotRef.current =
-          mapped.status === 'draft' ? getDraftSnapshot(mapped) : ''
+          nextForm.status === 'draft' ? getDraftSnapshot(nextForm) : ''
       } catch (err) {
         if (cancelled) return
         setLoadError(err instanceof Error ? err.message : 'Failed to load product.')
@@ -135,7 +137,7 @@ export function AddProductPage() {
     return () => {
       cancelled = true
     }
-  }, [productId, getAccessToken, getDraftSnapshot])
+  }, [productId, routeProductId, getAccessToken, getDraftSnapshot])
 
   const persistDraft = useCallback(
     async (draft: ProductFormDraft, options?: { force?: boolean }) => {

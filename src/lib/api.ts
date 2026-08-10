@@ -545,10 +545,20 @@ export async function fetchMarketplaceProducts(
   )
 }
 
-export async function fetchMarketplaceFacets() {
-  return apiRequest<{ success: true; facets: MarketplaceFacets }>('/api/marketplace/facets', {
-    method: 'GET',
-  })
+export async function fetchMarketplaceFacets(params?: MarketplaceFilters) {
+  const search = new URLSearchParams()
+  if (params?.q) search.set('q', params.q)
+  if (params?.category) search.set('category', params.category)
+  if (params?.categories?.length) search.set('categories', params.categories.join(','))
+  if (params?.minPrice != null) search.set('minPrice', String(params.minPrice))
+  if (params?.maxPrice != null) search.set('maxPrice', String(params.maxPrice))
+  if (params?.gsm?.length) search.set('gsm', params.gsm.join(','))
+  if (params?.moqRanges?.length) search.set('moqRanges', params.moqRanges.join(','))
+  const qs = search.toString()
+  return apiRequest<{ success: true; facets: MarketplaceFacets }>(
+    `/api/marketplace/facets${qs ? `?${qs}` : ''}`,
+    { method: 'GET' },
+  )
 }
 
 export async function fetchMarketplaceSuggest(q: string) {

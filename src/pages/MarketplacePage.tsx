@@ -169,10 +169,25 @@ export function MarketplacePage() {
   }, [filtersOpen])
 
   useEffect(() => {
-    void fetchMarketplaceFacets()
-      .then((result) => setFacets(result.facets))
-      .catch(() => setFacets(null))
-  }, [])
+    let cancelled = false
+    void fetchMarketplaceFacets({
+      q: query.trim() || undefined,
+      categories: filters.categories,
+      minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+      maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+      gsm: filters.gsm,
+      moqRanges: filters.moqRanges,
+    })
+      .then((result) => {
+        if (!cancelled) setFacets(result.facets)
+      })
+      .catch(() => {
+        if (!cancelled) setFacets(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [query, filters])
 
   useEffect(() => {
     let cancelled = false
