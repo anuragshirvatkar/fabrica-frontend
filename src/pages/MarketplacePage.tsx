@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
-import { LayoutGrid, List, PackageOpen, SlidersHorizontal, X } from 'lucide-react'
+import { LayoutGrid, List, MessageSquareText, PackageOpen, SlidersHorizontal, X } from 'lucide-react'
 import { Container } from '../components/container'
 import { Navbar } from '../components/navbar'
 import { Footer } from '../components/footer'
@@ -188,6 +188,7 @@ export function MarketplacePage() {
   const [connectionError, setConnectionError] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
   const activeFilterCount =
     filters.categories.length +
     filters.gsm.length +
@@ -196,13 +197,13 @@ export function MarketplacePage() {
     (filters.maxPrice ? 1 : 0)
 
   useEffect(() => {
-    if (!filtersOpen) return
+    if (!filtersOpen && !aiPanelOpen) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prev
     }
-  }, [filtersOpen])
+  }, [filtersOpen, aiPanelOpen])
 
   useEffect(() => {
     let cancelled = false
@@ -372,13 +373,23 @@ export function MarketplacePage() {
                         </p>
                       ) : null}
                     </div>
-                    <button
-                      type="button"
-                      onClick={exitAiMode}
-                      className="self-start text-sm font-medium text-gray-600 hover:text-black shrink-0"
-                    >
-                      Exit AI
-                    </button>
+                    <div className="flex items-center gap-2 self-start shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setAiPanelOpen(true)}
+                        className="lg:hidden inline-flex items-center gap-1.5 h-10 px-3 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-gray-300 hover:text-black"
+                      >
+                        <MessageSquareText size={15} />
+                        Ask AI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={exitAiMode}
+                        className="text-sm font-medium text-gray-600 hover:text-black"
+                      >
+                        Exit AI
+                      </button>
+                    </div>
                   </div>
 
                   <AiInlineFilters filters={aiFilters} />
@@ -432,7 +443,7 @@ export function MarketplacePage() {
                 <div className="flex-1 px-4 sm:px-6 md:px-8 lg:px-10 py-5 md:py-6 pb-36 md:pb-52">
                   <div className="flex flex-wrap items-center justify-between gap-2.5 mb-4">
                     <PageBackLink to="/" label="Back to home" className="mb-0" />
-                    <div className="flex items-center gap-1.5 ml-auto">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 w-full sm:w-auto ml-auto">
                       <button
                         type="button"
                         onClick={() => setFiltersOpen(true)}
@@ -588,6 +599,23 @@ export function MarketplacePage() {
                 Show results
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {aiPanelOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <button
+            type="button"
+            aria-label="Close AI assistant"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setAiPanelOpen(false)}
+          />
+          <div className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-xl flex flex-col">
+            <AiAssistantPanel
+              onClose={() => setAiPanelOpen(false)}
+              initialSummary={aiSummary}
+            />
           </div>
         </div>
       )}

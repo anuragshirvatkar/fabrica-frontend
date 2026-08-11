@@ -408,7 +408,7 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
                   : 'bg-[#f5f3ef] rounded-tl-sm'
               }`}
             >
-              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
                 {msg.content}
               </p>
             </div>

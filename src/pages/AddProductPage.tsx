@@ -177,8 +177,8 @@ export function AddProductPage() {
           skipNextLoadRef.current = true
           navigate(`/seller/products/new?draft=${result.product._id}`, { replace: true })
         }
-      } catch (err) {
-        console.error('[draft] autosave failed', err)
+      } catch {
+        // Autosave is best-effort; keep editing even if draft sync fails.
       }
     },
     [getAccessToken, getDraftSnapshot, navigate],

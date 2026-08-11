@@ -214,7 +214,7 @@ export function FilterSidebar({
                 }}
                 className="w-4 h-4 mt-0.5 rounded border-gray-300 accent-black flex-shrink-0"
               />
-              <span className="text-sm text-gray-700 group-hover:text-black leading-snug">
+              <span className="text-sm text-gray-700 group-hover:text-black leading-snug min-w-0 break-words">
                 {cat.name}
                 <span className="text-gray-400 ml-1">({cat.count})</span>
               </span>
@@ -255,7 +255,7 @@ export function FilterSidebar({
                 }
                 className="w-4 h-4 rounded border-gray-300 accent-black flex-shrink-0"
               />
-              <span className="text-sm text-gray-700 group-hover:text-black">
+              <span className="text-sm text-gray-700 group-hover:text-black min-w-0 break-words">
                 {option.label}
                 <span className="text-gray-400 ml-1">({option.count})</span>
               </span>
@@ -279,7 +279,7 @@ export function FilterSidebar({
                 }
                 className="w-4 h-4 rounded border-gray-300 accent-black flex-shrink-0"
               />
-              <span className="text-sm text-gray-700 group-hover:text-black">
+              <span className="text-sm text-gray-700 group-hover:text-black min-w-0 break-words">
                 {option.label}
                 <span className="text-gray-400 ml-1">({option.count})</span>
               </span>

@@ -105,7 +105,7 @@ export function ThemedSelect({
         } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       >
         <span
-          className={`${fitContent ? '' : 'truncate'} text-left ${
+          className={`truncate text-left max-w-[9.5rem] sm:max-w-none ${
             selected ? 'text-black' : 'text-gray-400'
           }`}
         >
@@ -119,8 +119,10 @@ export function ThemedSelect({
 
       {open && (
         <div
-          className={`absolute left-0 top-full z-50 mt-1.5 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden animate-fade-slide-in ${
-            fitContent ? 'min-w-[12.5rem] w-max' : 'right-0 min-w-[12.5rem]'
+          className={`absolute top-full z-50 mt-1.5 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden animate-fade-slide-in ${
+            fitContent
+              ? 'right-0 left-auto min-w-[12.5rem] w-max max-w-[calc(100vw-1.5rem)]'
+              : 'left-0 right-0 min-w-[12.5rem]'
           }`}
         >
           {searchable && (

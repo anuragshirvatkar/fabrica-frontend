@@ -138,8 +138,7 @@ export async function sampleColorAtPoint(
     if (!ctx) return null
     const [r, g, b] = ctx.getImageData(x, y, 1, 1).data
     return rgbToHex(r, g, b)
-  } catch (error) {
-    console.error('[color-picker] sample failed', error)
+  } catch {
     return null
   }
 }

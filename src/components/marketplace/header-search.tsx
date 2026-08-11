@@ -146,10 +146,10 @@ export function HeaderSearch({
           <button
             type="button"
             onClick={() => goToSearch(query)}
-            className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-[#f5f3ef] border-b border-gray-100"
+            className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-[#f5f3ef] border-b border-gray-100 min-w-0"
           >
             <Search size={15} className="text-gray-500 shrink-0" />
-            <span className="text-sm text-gray-800">
+            <span className="text-sm text-gray-800 truncate min-w-0">
               Search for <span className="font-semibold">&lsquo;{query.trim()}&rsquo;</span>
             </span>
           </button>

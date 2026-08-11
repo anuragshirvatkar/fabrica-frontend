@@ -77,8 +77,7 @@ export async function apiRequest<T>(
         ...headers,
       },
     })
-  } catch (networkError) {
-    console.error('[api] network error', { url, networkError })
+  } catch {
     const error = new Error(
       `Cannot reach API at ${API_BASE_URL}. Is the backend running on port 5000?`,
     ) as Error & { code?: string; status?: number }
@@ -111,12 +110,6 @@ export async function apiRequest<T>(
     ) as Error & { code?: string; status?: number }
     error.code = payload && 'code' in payload ? String(payload.code) : undefined
     error.status = response.status
-    console.error('[api] request failed', {
-      url,
-      status: response.status,
-      code: error.code,
-      message: error.message,
-    })
     if (isSessionExpiredError(error, { hadToken: Boolean(token) })) {
       notifySessionExpired({ code: error.code })
     }

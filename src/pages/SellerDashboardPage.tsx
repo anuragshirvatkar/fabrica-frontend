@@ -547,7 +547,7 @@ export function SellerDashboardPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100">
               <MiniStat
                 label="Total Sales"
                 value={dashLoading ? '—' : `₹${formatNumber(dashboard?.totalSales || 0)}`}

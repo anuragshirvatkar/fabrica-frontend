@@ -185,9 +185,7 @@ export function AiOnboardingFlow({ role, token, onComplete, headerSlot }: AiOnbo
     return 5
   }
 
-  const voiceDebug = (label: string, data?: unknown) => {
-    console.log('[voice]', label, data ?? '')
-  }
+  const voiceDebug = (_label: string, _data?: unknown) => {}
 
   useEffect(() => {
     fieldRef.current = field
@@ -735,7 +733,7 @@ export function AiOnboardingFlow({ role, token, onComplete, headerSlot }: AiOnbo
           >
             <div className={`max-w-[90%] ${message.role === 'user' ? 'items-end' : ''}`}>
               <div
-                className={`rounded-2xl px-3 py-2 text-sm leading-snug ${
+                className={`rounded-2xl px-3 py-2 text-sm leading-snug break-words ${
                   message.role === 'user'
                     ? 'bg-black text-white rounded-br-md'
                     : 'bg-[#f5f3ef] text-gray-800 rounded-bl-md'
@@ -864,12 +862,12 @@ export function AiOnboardingFlow({ role, token, onComplete, headerSlot }: AiOnbo
           ) : null}
 
           {listening ? (
-            <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+              <span className="relative flex h-2.5 w-2.5 shrink-0 mt-0.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-600" />
               </span>
-              <div className="flex items-end gap-0.5 h-4" aria-hidden>
+              <div className="hidden sm:flex items-end gap-0.5 h-4 shrink-0 mt-0.5" aria-hidden>
                 {[4, 10, 6, 12, 5, 9].map((h, i) => (
                   <span
                     key={i}
@@ -881,8 +879,9 @@ export function AiOnboardingFlow({ role, token, onComplete, headerSlot }: AiOnbo
                   />
                 ))}
               </div>
-              <p className="text-xs font-semibold text-red-700">
-                Recording… {listenLeft}s left · tap mic to stop · we’ll transcribe after
+              <p className="min-w-0 flex-1 text-xs font-semibold text-red-700 leading-snug">
+                Recording… {listenLeft}s left
+                <span className="font-normal text-red-600/90"> · tap mic to stop</span>
               </p>
             </div>
           ) : null}

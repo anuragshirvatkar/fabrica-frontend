@@ -55,8 +55,8 @@ export function ProductCard({
         await addFavorite(token, product.id)
         setFavorited(true)
       }
-    } catch (error) {
-      console.error('[favorite]', error)
+    } catch {
+      // Keep previous favorite state if the request fails.
     } finally {
       setSaving(false)
     }

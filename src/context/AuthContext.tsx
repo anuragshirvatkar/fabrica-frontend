@@ -158,8 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const code = (error as { code?: string }).code
           if (code === 'USER_NOT_FOUND' || code === 'EMAIL_NOT_VERIFIED') {
             setUser(null)
-          } else {
-            console.error(error)
           }
         }
       } finally {
@@ -179,9 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         await sendEmailVerification(credential.user)
-        console.log('[auth:register] Firebase verification email sent', { email: normalizedEmail })
       } catch (emailError) {
-        console.error('[auth:register] Firebase verification email failed', emailError)
         throw new Error(getFirebaseAuthErrorMessage(emailError))
       }
     } catch (error) {
@@ -364,9 +360,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       await sendEmailVerification(current)
-      console.log('[auth:verify] Firebase verification email resent', {
-        email: current.email,
-      })
     } catch (error) {
       throw new Error(getFirebaseAuthErrorMessage(error))
     }

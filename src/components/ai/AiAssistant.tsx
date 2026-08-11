@@ -470,8 +470,8 @@ export function AiAssistant() {
         onClick={() => setOpen(true)}
         className={`fixed z-[70] right-3 sm:right-4 md:right-7 inline-flex items-center gap-2 rounded-full bg-[#faf8f5] text-black border border-black/10 shadow-[0_8px_28px_rgba(0,0,0,0.22)] hover:shadow-[0_10px_32px_rgba(0,0,0,0.28)] hover:bg-white transition-all pl-1.5 pr-3 sm:pl-2 sm:pr-4 h-11 sm:h-12 ring-1 ring-white/80 ${
           onLandingHero
-            ? 'bottom-[9.75rem] sm:bottom-6 md:bottom-8'
-            : 'bottom-5 sm:bottom-6 md:bottom-8'
+            ? 'bottom-[calc(9.75rem+env(safe-area-inset-bottom))] sm:bottom-6 md:bottom-8'
+            : 'bottom-[calc(1.25rem+env(safe-area-inset-bottom))] sm:bottom-6 md:bottom-8'
         } ${open ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100'}`}
         aria-label="Open Fabrica AI assistant"
       >
@@ -548,7 +548,7 @@ export function AiAssistant() {
                         : 'bg-[#f5f3ef] rounded-tl-sm'
                     }`}
                   >
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
                       {msg.content}
                     </p>
                   </div>
@@ -625,7 +625,7 @@ export function AiAssistant() {
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-100 shrink-0 bg-white">
+            <div className="p-4 border-t border-gray-100 shrink-0 bg-white pb-[calc(1rem+env(safe-area-inset-bottom))]">
               {listening || transcribing ? (
                 <p className="text-[11px] font-medium text-red-600 mb-2 px-1">
                   {listening
