@@ -7,10 +7,12 @@ import { useAuth } from '../../context/AuthContext'
 import { useWhisperMic } from '../../hooks/useWhisperMic'
 import {
   cancelSpeech,
+  collectRecentChatProducts,
   detectAuthRefusal,
   detectCartAction,
   detectOpenProductAction,
   detectVoiceNavigation,
+  expandFabricSearchQueries,
   pathForNavigateTo,
   pickBestProduct,
   speakFabrica,
@@ -160,11 +162,19 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
           speakFabrica(reply)
           return
         }
-        const listed = await fetchMarketplaceProducts(
-          cartAction.query ? { q: cartAction.query } : undefined,
-          token,
-        )
-        const best = pickBestProduct(listed.products, cartAction.query)
+        const fromChat = collectRecentChatProducts(messages)
+        let best = pickBestProduct(fromChat, cartAction.query)
+        if (!best?._id) {
+          const queries = expandFabricSearchQueries(cartAction.query)
+          for (const q of queries.length ? queries : [cartAction.query]) {
+            const listed = await fetchMarketplaceProducts(q ? { q } : undefined, token)
+            best = pickBestProduct(
+              [...fromChat, ...(listed.products || [])],
+              cartAction.query || q,
+            )
+            if (best?._id) break
+          }
+        }
         if (!best?._id) {
           const reply =
             'I couldn’t find that fabric in the catalog. Try the exact product name, or open it from marketplace.'
@@ -222,11 +232,19 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
     if (openProduct) {
       try {
         const token = await getAccessToken()
-        const listed = await fetchMarketplaceProducts(
-          openProduct.query ? { q: openProduct.query } : undefined,
-          token,
-        )
-        const best = pickBestProduct(listed.products, openProduct.query)
+        const fromChat = collectRecentChatProducts(messages)
+        let best = pickBestProduct(fromChat, openProduct.query)
+        if (!best?._id) {
+          const queries = expandFabricSearchQueries(openProduct.query)
+          for (const q of queries.length ? queries : [openProduct.query]) {
+            const listed = await fetchMarketplaceProducts(q ? { q } : undefined, token)
+            best = pickBestProduct(
+              [...fromChat, ...(listed.products || [])],
+              openProduct.query || q,
+            )
+            if (best?._id) break
+          }
+        }
         if (!best?._id) {
           const reply =
             'I couldn’t find that product. Try the exact name, or browse the marketplace.'

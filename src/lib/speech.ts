@@ -314,9 +314,31 @@ function cleanProductQuery(raw: string) {
   return query
 }
 
+/** Normalize fabric brand/slang so "polycotton" matches "PolyCot". */
+function canonicalizeFabricText(value: string) {
+  let text = normalizeActionText(value)
+  text = text.replace(/\bpoly\s*[- ]?\s*cot(?:ton)?\b/g, 'polycot')
+  text = text.replace(/\bpolycotton\b/g, 'polycot')
+  text = text.replace(/\bpolyester\b/g, 'poly')
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+export function expandFabricSearchQueries(query: string): string[] {
+  const base = cleanProductQuery(query) || normalizeActionText(query)
+  if (!base) return []
+  const canon = canonicalizeFabricText(base)
+  const alts = new Set<string>([base, canon])
+  if (/\bpolycot\b/.test(canon)) {
+    alts.add(canon.replace(/\bpolycot\b/g, 'polycotton'))
+    alts.add(canon.replace(/\bpolycot\b/g, 'poly cotton'))
+    alts.add(canon.replace(/\bpolycot\b/g, 'poly cot'))
+  }
+  return [...alts].filter(Boolean)
+}
+
 export function scoreProductName(query: string, name: string) {
-  const q = normalizeActionText(query)
-  const n = normalizeActionText(name)
+  const q = canonicalizeFabricText(query)
+  const n = canonicalizeFabricText(name)
   if (!q || !n) return 0
   if (n === q) return 120
   if (n.includes(q) || q.includes(n)) return 100
@@ -340,6 +362,25 @@ export function pickBestProduct<T extends { name?: string }>(
     .sort((a, b) => b.score - a.score)
   if (!ranked[0] || ranked[0].score < 40) return null
   return ranked[0].product
+}
+
+/** Prefer products already shown in this chat over a fresh marketplace search. */
+export function collectRecentChatProducts<T extends { _id?: string; name?: string }>(
+  messages: Array<{ role?: string; products?: T[] | null }>,
+): T[] {
+  const out: T[] = []
+  const seen = new Set<string>()
+  for (const msg of [...messages].reverse()) {
+    if (msg.role !== 'assistant' || !msg.products?.length) continue
+    for (const product of msg.products) {
+      const id = String(product?._id || '')
+      if (!id || seen.has(id)) continue
+      seen.add(id)
+      out.push(product)
+    }
+    if (out.length >= 16) break
+  }
+  return out
 }
 
 /** e.g. "add premium cotton poplin to cart" / "add X in cart" */
