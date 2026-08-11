@@ -65,7 +65,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative w-full min-h-[100dvh] h-[100dvh] overflow-hidden">
+    <section id="landing-hero" className="relative w-full min-h-[100dvh] h-[100dvh] overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
         {heroImages.map((src, index) => {
           const isActive = index === activeIndex

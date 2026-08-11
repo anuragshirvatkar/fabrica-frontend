@@ -18,6 +18,10 @@ type ThemedSelectProps = {
   searchable?: boolean
   searchPlaceholder?: string
   onBlur?: () => void
+  /** Compact trigger for toolbars */
+  size?: 'md' | 'sm'
+  /** Shrink trigger to label width; panel can still expand wider */
+  fitContent?: boolean
 }
 
 export function ThemedSelect({
@@ -31,6 +35,8 @@ export function ThemedSelect({
   searchable = false,
   searchPlaceholder = 'Search…',
   onBlur,
+  size = 'md',
+  fitContent = false,
 }: ThemedSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -69,7 +75,7 @@ export function ThemedSelect({
   }
 
   return (
-    <div className="relative z-20" ref={rootRef}>
+    <div className={`relative z-20 ${fitContent ? 'inline-block' : 'w-full'}`} ref={rootRef}>
       <button
         id={id}
         type="button"
@@ -84,7 +90,13 @@ export function ThemedSelect({
             return next
           })
         }}
-        className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm rounded-lg border bg-white transition-colors ${
+        className={`flex items-center justify-between border bg-white transition-colors ${
+          fitContent ? 'w-auto' : 'w-full'
+        } ${
+          size === 'sm'
+            ? 'h-8 gap-1.5 px-2.5 text-xs sm:text-sm rounded-md'
+            : 'gap-3 px-3.5 py-2.5 text-sm rounded-lg'
+        } ${
           error
             ? 'border-red-400'
             : open
@@ -92,17 +104,25 @@ export function ThemedSelect({
               : 'border-gray-200 hover:border-gray-300'
         } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       >
-        <span className={`truncate text-left ${selected ? 'text-black' : 'text-gray-400'}`}>
+        <span
+          className={`${fitContent ? '' : 'truncate'} text-left ${
+            selected ? 'text-black' : 'text-gray-400'
+          }`}
+        >
           {selected?.label || placeholder}
         </span>
         <ChevronDown
-          size={16}
+          size={size === 'sm' ? 14 : 16}
           className={`text-gray-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden animate-fade-slide-in">
+        <div
+          className={`absolute left-0 top-full z-50 mt-1.5 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden animate-fade-slide-in ${
+            fitContent ? 'min-w-[12.5rem] w-max' : 'right-0 min-w-[12.5rem]'
+          }`}
+        >
           {searchable && (
             <div className="p-2 border-b border-gray-100">
               <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[#f7f5f2] border border-transparent focus-within:border-gray-300 focus-within:bg-white transition-colors">
@@ -144,7 +164,7 @@ export function ThemedSelect({
                       className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-sm text-left transition-colors ${
                         active
                           ? 'bg-[#f5f3ef] text-black font-medium'
-                          : 'text-gray-700 hover:bg-[#fafafa]'
+                          : 'text-gray-700 hover:bg-[#f5f3ef]/70'
                       }`}
                     >
                       <span className="truncate">{option.label}</span>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Lock, Mail, Eye, EyeOff, ShoppingCart, Store } from 'lucide-react'
 import { AuthLayout, GoogleIcon } from '../components/auth/AuthLayout'
 import { useAuth } from '../context/AuthContext'
@@ -22,7 +22,11 @@ const roleOptions = [
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { loginWithEmail, loginWithGoogle, getRedirectPath, logout } = useAuth()
+
+  const sessionExpired =
+    (location.state as { reason?: string } | null)?.reason === 'session_expired'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -190,6 +194,12 @@ export function LoginPage() {
                 Welcome back
               </h1>
               <p className="text-sm text-gray-500 mb-8">Sign in to continue to Fabrica.</p>
+
+              {sessionExpired && !error && (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                  Your session has expired. Please sign in again.
+                </div>
+              )}
 
               {error && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">

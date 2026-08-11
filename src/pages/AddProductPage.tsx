@@ -21,6 +21,8 @@ import {
   sampleColorAtPoint,
 } from '../components/seller/ImageColorPicker'
 import { FieldError } from '../components/ui/FieldError'
+import { PageBackLink } from '../components/ui/PageBackLink'
+import { PageLoader } from '../components/ui/PageLoader'
 import { SuccessModal } from '../components/ui/SuccessModal'
 import { ThemedSelect } from '../components/ui/ThemedSelect'
 import { useAuth } from '../context/AuthContext'
@@ -456,8 +458,8 @@ export function AddProductPage() {
   if (!ready) {
     return (
       <SellerShell>
-        <main className="px-4 md:px-6 lg:px-8 py-10">
-          <p className="text-sm text-gray-500">Loading product form...</p>
+        <main className="w-full min-w-0">
+          <PageLoader label="Loading product form" />
         </main>
       </SellerShell>
     )
@@ -466,11 +468,9 @@ export function AddProductPage() {
   if (loadError) {
     return (
       <SellerShell>
-        <main className="px-4 md:px-6 lg:px-8 py-10 space-y-4">
+        <main className="w-full min-w-0 space-y-4">
+          <PageBackLink to="/seller/products" label="Back to products" />
           <p className="text-sm text-red-600">{loadError}</p>
-          <Link to="/seller/products" className="text-sm font-medium text-black underline">
-            Back to Products
-          </Link>
         </main>
       </SellerShell>
     )
@@ -478,7 +478,7 @@ export function AddProductPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+      <main className="w-full min-w-0">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
           <div>
             <Link
@@ -486,12 +486,12 @@ export function AddProductPage() {
               onClick={() => {
                 void persistDraft(form)
               }}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-black mb-3"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-black transition-colors mb-3"
             >
               <ArrowLeft size={16} />
-              Back to Products
+              Back to products
             </Link>
-            <h1 className="font-serif text-3xl md:text-[34px] font-semibold text-black mb-1">
+            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight mb-1">
               {form.step === 1
                 ? 'Add New Product'
                 : form.name.trim() || 'Untitled product'}
@@ -1037,7 +1037,7 @@ export function AddProductPage() {
         {form.step === 3 && (
           <div key="step-3" className="space-y-5 step-panel-enter">
             <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-7">
-              <h2 className="text-lg font-semibold text-black mb-1">Review Product</h2>
+              <h2 className="font-serif text-xl font-semibold text-black mb-1">Review Product</h2>
               <p className="text-sm text-gray-500 mb-6">
                 Please review all the details below. You can go back and edit if needed.
               </p>

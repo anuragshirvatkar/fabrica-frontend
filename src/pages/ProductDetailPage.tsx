@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
   Heart,
   Maximize2,
   Layers,
-  Ruler,
   Shirt,
-  Grid3x3,
   ShoppingCart,
   Wind,
-  Hand,
   Shield,
-  Sparkles,
   Droplets,
   Scissors,
   Leaf,
@@ -20,6 +16,11 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  MessageCircle,
+  ArrowLeftRight,
+  Tag,
+  Grid3x3,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { Container } from '../components/container'
@@ -58,15 +59,15 @@ const tabs = ['Overview', 'Q&A', 'Reviews', 'Find Similar', 'Compare'] as const
 
 /** Static overview copy — pick a variation per product so pages don't look identical. */
 const OVERVIEW_VARIATIONS: Array<{
-  features: Array<{ label: string; icon: LucideIcon }>
+  features: Array<{ lines: [string, string]; icon: LucideIcon }>
   whyChoose: string[]
 }> = [
   {
     features: [
-      { label: 'Soft Hand-feel', icon: Wind },
-      { label: 'Production Ready', icon: Hand },
-      { label: 'Consistent Quality', icon: Shield },
-      { label: 'Durable Weave', icon: Sparkles },
+      { lines: ['Soft hand-feel', 'and breathable'], icon: Wind },
+      { lines: ['Production', 'ready'], icon: Shirt },
+      { lines: ['Consistent', 'quality'], icon: Shield },
+      { lines: ['Durable', 'weave'], icon: Grid3x3 },
     ],
     whyChoose: [
       'Color variants with real product images',
@@ -77,10 +78,10 @@ const OVERVIEW_VARIATIONS: Array<{
   },
   {
     features: [
-      { label: 'Breathable Finish', icon: Wind },
-      { label: 'Easy to Cut', icon: Scissors },
-      { label: 'Colorfast Dyes', icon: Droplets },
-      { label: 'Buyer Trusted', icon: Shield },
+      { lines: ['Breathable', 'finish'], icon: Wind },
+      { lines: ['Easy to', 'cut'], icon: Scissors },
+      { lines: ['Colorfast', 'dyes'], icon: Droplets },
+      { lines: ['Buyer', 'trusted'], icon: Shield },
     ],
     whyChoose: [
       'Ideal for apparel and light garments',
@@ -91,10 +92,10 @@ const OVERVIEW_VARIATIONS: Array<{
   },
   {
     features: [
-      { label: 'Natural Comfort', icon: Leaf },
-      { label: 'Clean Drape', icon: Shirt },
-      { label: 'Batch Consistency', icon: Layers },
-      { label: 'Premium Finish', icon: Sparkles },
+      { lines: ['Natural', 'comfort'], icon: Leaf },
+      { lines: ['Clean', 'drape'], icon: Shirt },
+      { lines: ['Batch', 'consistency'], icon: Layers },
+      { lines: ['Premium', 'finish'], icon: Grid3x3 },
     ],
     whyChoose: [
       'Sourced for professional garment makers',
@@ -133,6 +134,7 @@ export function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState(0)
   const [colorImagesLoading, setColorImagesLoading] = useState(false)
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false)
   const [gstInfoOpen, setGstInfoOpen] = useState(false)
   const gstInfoRef = useRef<HTMLDivElement>(null)
   const [quantity, setQuantity] = useState(1)
@@ -212,7 +214,7 @@ export function ProductDetailPage() {
     }
   }, [user, getAccessToken, id])
 
-  const variant = product?.variants[selectedVariant] || product?.variants[0]
+  const variant = product?.variants?.[selectedVariant] || product?.variants?.[0]
   const thumbnails = useMemo(() => {
     if (!variant?.images?.length) return product?.coverImage ? [product.coverImage] : []
     return variant.images
@@ -273,6 +275,19 @@ export function ProductDetailPage() {
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [gstInfoOpen])
+
+  useEffect(() => {
+    if (!imageLightboxOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setImageLightboxOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [imageLightboxOpen])
 
   const handleSelectVariant = (index: number) => {
     if (index === selectedVariant) return
@@ -434,16 +449,7 @@ export function ProductDetailPage() {
       <Navbar variant="solid" minimal fixed={false} spacedLogo showActions />
 
       <Container className="flex-1 pt-4 pb-36 md:pb-52">
-        <PageBackLink to="/marketplace" label="Back to marketplace" className="mb-3" />
-        <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500 mb-6 min-w-0">
-          <Link to="/marketplace" className="hover:text-black transition-colors shrink-0">
-            Marketplace
-          </Link>
-          <span className="shrink-0">&gt;</span>
-          <span className="shrink-0">{product.category || 'Fabric'}</span>
-          <span className="shrink-0">&gt;</span>
-          <span className="text-black min-w-0 truncate">{product.name}</span>
-        </nav>
+        <PageBackLink to="/marketplace" label="Back to marketplace" className="mb-6" />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1.1fr_1fr_280px] gap-6 xl:gap-8 items-start">
           <div className="flex flex-col sm:flex-row gap-3 lg:col-start-1 lg:row-start-1 xl:col-start-1 xl:row-start-1">
@@ -489,10 +495,14 @@ export function ProductDetailPage() {
               )}
               <button
                 type="button"
-                className="absolute top-3 right-3 z-20 w-10 h-10 bg-white rounded-md flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
+                onClick={() => {
+                  if (thumbnails[activeImage]) setImageLightboxOpen(true)
+                }}
+                disabled={!thumbnails[activeImage]}
+                className="absolute top-3 right-3 z-20 w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm border border-gray-100 disabled:opacity-50"
                 aria-label="Expand image"
               >
-                <Maximize2 size={16} className="text-gray-600" />
+                <Maximize2 size={16} className="text-gray-700" />
               </button>
             </div>
 
@@ -515,7 +525,7 @@ export function ProductDetailPage() {
           </div>
 
           <div className="min-w-0 lg:col-start-1 lg:row-start-2 xl:col-start-2 xl:row-start-1">
-            <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-start justify-between gap-3 mb-3">
               <h1 className="text-2xl md:text-[28px] font-serif font-semibold text-black leading-tight">
                 {product.name}
               </h1>
@@ -534,61 +544,85 @@ export function ProductDetailPage() {
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 leading-relaxed mb-3">{product.description}</p>
+            {product.description ? (
+              <p className="text-sm text-gray-600 leading-relaxed mb-4">{product.description}</p>
+            ) : null}
 
-            <div className="flex flex-wrap gap-2 mb-5">
+            <div className="flex flex-wrap items-center gap-2 mb-5">
               <button
                 type="button"
                 onClick={() => setActiveTab('Q&A')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-gray-200 bg-white text-gray-800 hover:border-gray-400"
               >
+                <MessageCircle size={14} className="text-gray-600 shrink-0" />
                 Ask about this fabric
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('Compare')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-gray-200 bg-white text-gray-800 hover:border-gray-400"
               >
+                <ArrowLeftRight size={14} className="text-gray-600 shrink-0" />
                 Compare with another
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5">
-              {[
-                { icon: Layers, label: product.gsm != null ? `${product.gsm} GSM` : '—' },
-                { icon: Ruler, label: `Unit: ${unit}` },
-                { icon: Shirt, label: product.category || 'Fabric' },
-                {
-                  icon: Grid3x3,
-                  label: `${formatNumber(stock) || 0} ${unitSuffix(unit)} available`,
-                },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-[#f5f3ef] flex items-center justify-center flex-shrink-0">
-                    <Icon size={15} className="text-gray-600" />
-                  </div>
-                  <span className="text-xs text-gray-700">{label}</span>
-                </div>
-              ))}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 text-sm text-gray-800 mb-3">
+              {(
+                [
+                  product.gsm != null
+                    ? { icon: Layers, label: `${product.gsm} GSM` }
+                    : null,
+                  { icon: Shirt, label: product.category || 'Fabric' },
+                  {
+                    icon: Tag,
+                    label: unit.charAt(0).toUpperCase() + unit.slice(1),
+                  },
+                ] as Array<{ icon: LucideIcon; label: string } | null>
+              )
+                .filter((item): item is { icon: LucideIcon; label: string } => Boolean(item))
+                .map((item, index) => {
+                  const Icon = item.icon
+                  return (
+                    <span key={item.label} className="inline-flex items-center gap-2">
+                      {index > 0 && (
+                        <span className="text-gray-300 mr-1" aria-hidden="true">
+                          ·
+                        </span>
+                      )}
+                      <span className="w-7 h-7 rounded-full bg-[#ece8e3] inline-flex items-center justify-center shrink-0">
+                        <Icon size={14} className="text-[#5c4a3d]" />
+                      </span>
+                      <span className="font-medium">{item.label}</span>
+                    </span>
+                  )
+                })}
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-black mb-2.5">
-                Color: {variant?.colorHex || 'Not selected'}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                {product.variants.map((entry, i) => (
+            <div className="flex items-center gap-2 text-sm text-gray-800 mb-5">
+              <span className="w-7 h-7 rounded-full bg-[#ece8e3] inline-flex items-center justify-center shrink-0">
+                <Grid3x3 size={14} className="text-[#5c4a3d]" />
+              </span>
+              <span className="font-medium">
+                {formatNumber(stock) || 0} {unitSuffix(unit)} available
+              </span>
+            </div>
+
+            <div className="border-t border-gray-200 pt-5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {(product.variants || []).map((entry, i) => (
                   <button
                     key={entry._id || entry.colorHex || i}
                     type="button"
                     onClick={() => handleSelectVariant(i)}
-                    className={`w-7 h-7 rounded-full border-2 transition-all ${
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
                       selectedVariant === i
-                        ? 'border-black ring-1 ring-black ring-offset-1'
-                        : 'border-gray-200'
+                        ? 'border-black ring-1 ring-black ring-offset-2'
+                        : 'border-gray-200 hover:border-gray-400'
                     }`}
                     style={{ backgroundColor: entry.colorHex || '#ddd' }}
                     aria-label={entry.colorHex || `Color ${i + 1}`}
+                    title={entry.colorHex || `Color ${i + 1}`}
                   />
                 ))}
               </div>
@@ -597,12 +631,12 @@ export function ProductDetailPage() {
 
           <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 xl:col-start-3 xl:row-span-1 lg:sticky lg:top-6">
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <p className="text-2xl font-semibold text-black">
+              <p className="text-2xl md:text-[1.75rem] font-semibold text-black leading-none">
                 ₹{formatNumber(price)}
-                <span className="text-base font-normal text-gray-500"> / {unit}</span>
+                <span className="text-sm font-normal text-gray-500"> / {unit}</span>
               </p>
-              <div className="relative flex items-center gap-1.5 mt-1 mb-4" ref={gstInfoRef}>
-                <span className="text-xs text-gray-500">Price (Inclusive of GST)</span>
+              <div className="relative flex items-center gap-1.5 mt-2 mb-5" ref={gstInfoRef}>
+                <span className="text-xs text-gray-500">Inclusive of GST</span>
                 <button
                   type="button"
                   onClick={() => setGstInfoOpen((open) => !open)}
@@ -626,23 +660,23 @@ export function ProductDetailPage() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-gray-100 text-sm">
+              <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100 text-sm">
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2 h-2 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-amber-500'}`}
                   />
                   <span
-                    className={`font-medium ${inStock ? 'text-emerald-600' : 'text-amber-600'}`}
+                    className={`font-medium ${inStock ? 'text-emerald-700' : 'text-amber-700'}`}
                   >
-                    {inStock ? 'In Stock' : 'Out of Stock'}
+                    {inStock ? 'In stock' : 'Out of stock'}
                   </span>
                 </div>
-                <div className="text-right">
-                  <span className="text-gray-500">Min. order </span>
+                <p className="text-gray-500">
+                  MOQ{' '}
                   <span className="font-medium text-black">
                     {formatNumber(moq)} {unitSuffix(unit)}
                   </span>
-                </div>
+                </p>
               </div>
 
               <div className="mb-4">
@@ -659,7 +693,7 @@ export function ProductDetailPage() {
                 />
               </div>
 
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-baseline mb-5">
                 <span className="text-sm text-gray-500">Total</span>
                 <span className="text-xl font-semibold text-black">₹{formatNumber(total)}</span>
               </div>
@@ -672,30 +706,27 @@ export function ProductDetailPage() {
                 onClick={() => {
                   void handleAddToCart()
                 }}
-                className="btn-pill-black w-full py-3 text-sm rounded-lg mb-4 disabled:opacity-50"
+                className="btn-pill-black w-full py-3 text-sm mb-3 disabled:opacity-50"
               >
                 <ShoppingCart size={17} />
                 {inCart ? 'Go to Cart' : adding ? 'Adding...' : 'Add to Cart'}
               </button>
 
-              <div className="bg-[#f5f3ef] rounded-lg p-3 flex items-start gap-2.5">
-                <Shield size={16} className="text-gray-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  Secure payments. Easy returns. 100% purchase protection.
-                </p>
-              </div>
+              <p className="text-[11px] text-gray-500 text-center leading-relaxed">
+                Secure payments · Easy returns · Purchase protection
+              </p>
             </div>
           </div>
         </div>
 
         <div className="mt-6 md:mt-8">
-          <div className="flex border-b border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200 mb-6 overflow-x-auto scrollbar-none -mx-1 px-1">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors -mb-px ${
+                className={`px-3 sm:px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors -mb-px shrink-0 ${
                   activeTab === tab
                     ? 'border-black text-black'
                     : 'border-transparent text-gray-500 hover:text-black'
@@ -709,22 +740,29 @@ export function ProductDetailPage() {
           {activeTab === 'Overview' && (
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-8 xl:gap-12">
               <div>
-                <h2 className="text-lg font-serif font-semibold text-black mb-3">
+                <h2 className="text-lg font-serif font-semibold text-black mb-6">
                   Product Overview
                 </h2>
-                <p className="text-sm text-gray-600 leading-relaxed mb-8 max-w-2xl">
-                  {product.description}
-                </p>
 
-                <div className="flex flex-wrap gap-8 md:gap-12">
-                  {features.map((feature) => {
+                <div className="grid grid-cols-2 sm:grid-cols-4 max-w-xl border border-gray-200 sm:border-0 rounded-xl sm:rounded-none overflow-hidden sm:overflow-visible">
+                  {features.map((feature, index) => {
                     const Icon = feature.icon
+                    const key = feature.lines.join(' ')
                     return (
-                      <div key={feature.label} className="flex flex-col items-center text-center w-20">
-                        <div className="w-11 h-11 rounded-full bg-[#f5f3ef] flex items-center justify-center mb-2">
-                          <Icon size={18} className="text-gray-600" />
-                        </div>
-                        <span className="text-xs text-gray-700">{feature.label}</span>
+                      <div
+                        key={key}
+                        className={`flex flex-col items-center justify-center text-center px-3 sm:px-5 py-4 sm:py-2 ${
+                          index % 2 === 1 ? 'border-l border-gray-200 sm:border-l-0' : ''
+                        } ${index >= 2 ? 'border-t border-gray-200 sm:border-t-0' : ''} ${
+                          index > 0 ? 'sm:border-l sm:border-gray-200' : ''
+                        }`}
+                      >
+                        <Icon size={22} strokeWidth={1.5} className="text-black mb-2.5" />
+                        <span className="text-xs text-gray-700 leading-snug">
+                          {feature.lines[0]}
+                          <br />
+                          {feature.lines[1]}
+                        </span>
                       </div>
                     )
                   })}
@@ -944,6 +982,30 @@ export function ProductDetailPage() {
         loading={deletingReview}
         irreversible
       />
+
+      {imageLightboxOpen && thumbnails[activeImage] && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-8">
+          <button
+            type="button"
+            aria-label="Close image preview"
+            className="absolute inset-0 bg-black/80 backdrop-blur-[2px]"
+            onClick={() => setImageLightboxOpen(false)}
+          />
+          <button
+            type="button"
+            onClick={() => setImageLightboxOpen(false)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 inline-flex items-center justify-center"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={thumbnails[activeImage]}
+            alt={product.name}
+            className="relative z-[1] max-w-full max-h-[min(88dvh,900px)] w-auto h-auto object-contain rounded-lg shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { LayoutGrid, List, PackageOpen, SlidersHorizontal, X } from 'lucide-reac
 import { Container } from '../components/container'
 import { Navbar } from '../components/navbar'
 import { Footer } from '../components/footer'
+import { ThemedSelect } from '../components/ui/ThemedSelect'
 import {
   emptyMarketplaceFilters,
   FilterSidebar,
@@ -31,6 +32,37 @@ import { getFriendlyErrorMessage, isConnectionError } from '../lib/errors'
 
 const DEFAULT_AI_QUERY = 'breathable linen fabric for summer shirts'
 
+const SORT_OPTIONS = [
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
+  { value: 'moq-asc', label: 'MOQ: Low to High' },
+  { value: 'name-asc', label: 'Name: A to Z' },
+] as const
+
+type SortValue = (typeof SORT_OPTIONS)[number]['value']
+
+function parseSort(value: string | null): SortValue {
+  if (SORT_OPTIONS.some((option) => option.value === value)) {
+    return value as SortValue
+  }
+  return 'relevance'
+}
+
+function sortProducts(products: FabricProduct[], sort: SortValue) {
+  if (sort === 'relevance') return products
+
+  const next = [...products]
+  next.sort((a, b) => {
+    if (sort === 'price-asc') return a.price - b.price
+    if (sort === 'price-desc') return b.price - a.price
+    if (sort === 'moq-asc') return a.moq - b.moq
+    if (sort === 'name-asc') return a.name.localeCompare(b.name)
+    return 0
+  })
+  return next
+}
+
 function filtersFromParams(params: URLSearchParams): MarketplaceFilterState {
   return {
     categories: params.get('category')
@@ -46,7 +78,7 @@ function filtersFromParams(params: URLSearchParams): MarketplaceFilterState {
 function writeFiltersToParams(
   base: URLSearchParams,
   filters: MarketplaceFilterState,
-  extras?: { q?: string; ai?: boolean; view?: 'grid' | 'list' },
+  extras?: { q?: string; ai?: boolean; view?: 'grid' | 'list'; sort?: SortValue },
 ) {
   const next = new URLSearchParams()
   const q = extras?.q ?? base.get('q') ?? ''
@@ -55,6 +87,9 @@ function writeFiltersToParams(
 
   const view = extras?.view ?? (base.get('view') === 'list' ? 'list' : 'grid')
   if (view === 'list') next.set('view', 'list')
+
+  const sort = extras?.sort ?? parseSort(base.get('sort'))
+  if (sort !== 'relevance') next.set('sort', sort)
 
   if (filters.categories.length) next.set('category', filters.categories.join(','))
   if (filters.minPrice) next.set('minPrice', filters.minPrice)
@@ -137,6 +172,7 @@ export function MarketplacePage() {
   const aiMode = searchParams.get('ai') === 'true'
   const query = searchParams.get('q') ?? (aiMode ? DEFAULT_AI_QUERY : '')
   const viewMode = searchParams.get('view') === 'list' ? 'list' : 'grid'
+  const sortMode = parseSort(searchParams.get('sort'))
   const filters = useMemo(
     () => filtersFromParams(new URLSearchParams(searchKey)),
     [searchKey],
@@ -272,7 +308,10 @@ export function MarketplacePage() {
     />
   )
 
-  const displayProducts = products
+  const displayProducts = useMemo(
+    () => sortProducts(products, sortMode),
+    [products, sortMode],
+  )
 
   const updateFilters = useCallback(
     (nextFilters: MarketplaceFilterState) => {
@@ -289,6 +328,10 @@ export function MarketplacePage() {
 
   const setView = (view: 'grid' | 'list') => {
     setSearchParams(writeFiltersToParams(searchParams, filters, { view }), { replace: true })
+  }
+
+  const setSort = (sort: SortValue) => {
+    setSearchParams(writeFiltersToParams(searchParams, filters, { sort }), { replace: true })
   }
 
   const exitAiMode = () => {
@@ -403,6 +446,17 @@ export function MarketplacePage() {
                           </span>
                         )}
                       </button>
+                      <div className="w-auto min-w-0">
+                        <ThemedSelect
+                          id="marketplace-sort"
+                          value={sortMode}
+                          options={[...SORT_OPTIONS]}
+                          onChange={(value) => setSort(parseSort(value))}
+                          placeholder="Relevance"
+                          size="sm"
+                          fitContent
+                        />
+                      </div>
                       <div
                         className="inline-flex items-center h-8 rounded-md border border-gray-200 bg-white p-0.5"
                         role="group"

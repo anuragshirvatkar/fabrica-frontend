@@ -72,39 +72,39 @@ export function FeaturedProducts() {
   if (!loading && products.length === 0) return null
 
   return (
-    <section className="w-full py-8 md:py-10 bg-[#f9f9f9]">
+    <section className="w-full pt-6 md:pt-8 pb-12 md:pb-16 bg-[var(--color-canvas)]">
       <Container>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 md:mb-10">
           <div>
             <h2 className="text-3xl md:text-4xl lg:text-[42px] font-serif font-semibold text-black leading-tight">
               Featured Products
             </h2>
-            <p className="text-sm text-gray-500 mt-2">
-              A curated mix of linen, cotton, and silk from the live catalog.
+            <p className="text-sm text-gray-500 mt-2 max-w-md">
+              A curated mix from the live catalog.
             </p>
           </div>
           <Link
             to="/marketplace"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-black transition-colors"
           >
-            Browse more products
+            Browse marketplace
             <ArrowRight size={16} />
           </Link>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="rounded-2xl border border-gray-100 bg-white aspect-[3/4] animate-pulse"
+                className="rounded-xl border border-gray-100 bg-white aspect-[3/4] animate-pulse"
               />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} variant="featured" />
             ))}
           </div>
         )}

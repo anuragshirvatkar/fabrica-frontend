@@ -69,7 +69,7 @@ export function OrdersPage() {
     <div className="flex-1 flex flex-col bg-[#f9f9f9]">
       <div className="min-h-[calc(100dvh+14rem)] flex flex-col">
       <Navbar variant="solid" showActions fixed={false} />
-      <Container className="flex-1 py-8 md:py-10 pb-36 md:pb-52">
+      <Container wide className="flex-1 py-8 md:py-10 pb-16 md:pb-20">
         <PageBackLink to="/marketplace" label="Back to marketplace" className="mb-3" />
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-6">
           <div>

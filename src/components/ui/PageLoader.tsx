@@ -20,7 +20,7 @@ export function PageLoader({
       aria-label={label}
     >
       <div className="flex flex-col items-center gap-5">
-        <p className="font-semibold tracking-[0.35em] text-sm md:text-base text-black">
+        <p className="brand-mark text-sm md:text-base text-black tracking-[0.2em]">
           FABRICA
         </p>
 

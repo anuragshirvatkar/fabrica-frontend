@@ -26,23 +26,28 @@ const trustItems = [
 
 export function TrustSection() {
   return (
-    <section className="w-full pt-10 md:pt-12 pb-8 md:pb-10 bg-[#f9f9f9]">
+    <section className="w-full pt-10 md:pt-12 pb-4 md:pb-5 bg-[var(--color-canvas)]">
       <Container>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {trustItems.map((item) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-black/10">
+          {trustItems.map((item, index) => {
             const Icon = item.icon
             return (
-              <div key={item.title} className="flex items-start gap-3.5">
-                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-[#ece8e3] flex items-center justify-center">
-                  <Icon size={20} strokeWidth={1.5} className="text-[#3d3d3d]" />
-                </div>
-                <div className="min-w-0 pt-0.5">
-                  <h3 className="text-[15px] font-semibold text-black leading-snug mb-0.5">
+              <div
+                key={item.title}
+                className={[
+                  'flex flex-col items-start gap-3.5 py-7 sm:py-8 lg:py-1',
+                  'px-0 sm:px-7 lg:px-8 first:lg:pl-0 last:lg:pr-0',
+                  index > 0 ? 'max-sm:border-t max-sm:border-black/10' : '',
+                  index % 2 === 1 ? 'sm:max-lg:border-l sm:max-lg:border-black/10' : '',
+                  index >= 2 ? 'sm:max-lg:border-t sm:max-lg:border-black/10' : '',
+                ].join(' ')}
+              >
+                <Icon size={22} strokeWidth={1.35} className="text-black" />
+                <div>
+                  <h3 className="font-serif text-lg md:text-xl font-semibold text-black leading-snug mb-1.5">
                     {item.title}
                   </h3>
-                  <p className="text-[13px] text-[#6b6b6b] leading-snug">
-                    {item.description}
-                  </p>
+                  <p className="text-sm text-gray-500 leading-relaxed">{item.description}</p>
                 </div>
               </div>
             )

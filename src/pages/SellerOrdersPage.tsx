@@ -116,8 +116,10 @@ export function SellerOrdersPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-        <h1 className="font-serif text-3xl font-semibold text-black mb-1">Orders</h1>
+      <main className="w-full min-w-0">
+        <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight mb-1">
+          Orders
+        </h1>
         <p className="text-sm text-gray-500 mb-6">
           Mark orders as dispatched. Delivery confirms automatically after 1 minute.
           {!loading && orders.length > 0 ? (
@@ -228,7 +230,7 @@ export function SellerOrdersPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           to={`/seller/orders/${order._id}`}
-                          className="inline-flex items-center gap-1 h-9 px-3 rounded-md border border-gray-200 text-xs font-medium text-gray-700 hover:bg-[#f5f3ef]"
+                          className="inline-flex items-center gap-1 h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-[#f5f3ef]"
                         >
                           View
                           <ArrowRight size={13} />
@@ -259,7 +261,7 @@ export function SellerOrdersPage() {
                                 setBusyId(null)
                               }
                             }}
-                            className="h-9 px-3 rounded-md bg-black text-white text-xs font-medium hover:bg-gray-800 disabled:opacity-50"
+                            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg bg-black text-white text-xs font-medium hover:bg-gray-800 disabled:opacity-50"
                           >
                             {busyId === order._id
                               ? 'Updating...'

@@ -2,27 +2,24 @@ import { useEffect, useState } from 'react'
 import { Container } from './container'
 
 const stats = [
-  { number: '10K+', label: 'Businesses Trust Us' },
-  { number: '50K+', label: 'Fabrics Available' },
-  { number: '120+', label: 'Countries Served' },
+  { number: '10K+', label: 'Businesses' },
+  { number: '50K+', label: 'Fabrics' },
+  { number: '120+', label: 'Countries' },
 ]
 
 const testimonials = [
   {
-    quote:
-      'Fabrica has completely transformed the way we source fabrics. The quality, variety and seamless experience save us time and effort.',
+    quote: 'Fabrica transformed how we source fabrics — faster, clearer, and far more reliable.',
     author: 'Rahul Mehta',
     role: 'Procurement Head, Mehta Fashions',
   },
   {
-    quote:
-      'We cut our sourcing time in half. Verified suppliers and AI search make finding the right fabric effortless for our team.',
+    quote: 'We cut sourcing time in half with verified suppliers and AI search.',
     author: 'Priya Sharma',
     role: 'Design Director, Sharma Textiles',
   },
   {
-    quote:
-      'The B2B workflow is exactly what we needed. Bulk pricing, reliable delivery, and quality we can trust every single order.',
+    quote: 'The B2B workflow just works — bulk pricing, delivery, and quality we trust.',
     author: 'Arjun Patel',
     role: 'Operations Lead, Patel Garments',
   },
@@ -30,13 +27,13 @@ const testimonials = [
 
 export function Stats() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-6">
+    <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
       {stats.map((stat) => (
-        <div key={stat.label} className="text-center sm:text-left">
-          <div className="text-4xl md:text-5xl lg:text-[52px] font-serif font-semibold text-black mb-1 leading-none">
+        <div key={stat.label}>
+          <div className="text-3xl md:text-4xl font-serif font-semibold text-black leading-none">
             {stat.number}
           </div>
-          <p className="text-sm text-gray-500">{stat.label}</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1.5 tracking-wide">{stat.label}</p>
         </div>
       ))}
     </div>
@@ -56,40 +53,47 @@ export function StatsTestimonialSection() {
   const current = testimonials[activeIndex]
 
   return (
-    <section className="w-full py-8 md:py-10 bg-[#f9f9f9]">
+    <section className="w-full pt-10 md:pt-14 pb-12 md:pb-16 bg-white">
       <Container>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <Stats />
-
-          <div className="bg-[#f5f3ef] rounded-2xl p-8 md:p-10 lg:p-12 min-h-[280px] flex flex-col justify-between">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-end">
+          <div className="lg:col-span-5 space-y-8">
             <div>
-              <div className="text-5xl md:text-6xl font-serif text-black/20 leading-none mb-4 select-none">
-                &ldquo;
-              </div>
-              <blockquote>
-                <p
-                  key={activeIndex}
-                  className="text-base md:text-lg text-black leading-relaxed mb-6 animate-[fadeIn_0.5s_ease-in-out]"
-                >
-                  {current.quote}
-                </p>
-              </blockquote>
-              <p
-                key={`author-${activeIndex}`}
-                className="text-sm text-gray-500 animate-[fadeIn_0.5s_ease-in-out]"
-              >
-                &mdash; {current.author}, {current.role}
+              <p className="text-xs font-medium tracking-[0.16em] uppercase text-gray-400 mb-3">
+                Trusted worldwide
               </p>
+              <h2 className="font-serif text-3xl md:text-4xl font-semibold text-black leading-tight">
+                Built for teams that source at scale.
+              </h2>
             </div>
+            <Stats />
+          </div>
+
+          <div className="lg:col-span-7 lg:border-l lg:border-black/10 lg:pl-12 xl:pl-16">
+            <blockquote className="max-w-xl">
+              <p
+                key={activeIndex}
+                className="font-serif text-xl md:text-2xl text-black leading-snug tracking-tight line-clamp-2 animate-[fadeIn_0.5s_ease-in-out]"
+              >
+                &ldquo;{current.quote}&rdquo;
+              </p>
+              <footer
+                key={`author-${activeIndex}`}
+                className="mt-6 animate-[fadeIn_0.5s_ease-in-out]"
+              >
+                <p className="text-sm font-medium text-black">{current.author}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{current.role}</p>
+              </footer>
+            </blockquote>
 
             <div className="flex gap-2 mt-8">
               {testimonials.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => setActiveIndex(i)}
                   aria-label={`View testimonial ${i + 1}`}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    i === activeIndex ? 'bg-black' : 'bg-gray-300 hover:bg-gray-400'
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === activeIndex ? 'w-7 bg-black' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
                   }`}
                 />
               ))}

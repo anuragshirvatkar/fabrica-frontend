@@ -8,13 +8,7 @@ import {
 } from '../lib/api'
 import { formatNumber } from '../lib/format'
 
-const popularSearches = [
-  'Cotton for shirts',
-  'Linen under ₹300',
-  'Denim for jackets',
-  'Silk for sarees',
-  'Synthetic fabrics',
-]
+const popularSearches = ['Cotton for shirts', 'Linen under ₹300', 'Denim for jackets']
 
 export function SearchBar() {
   const navigate = useNavigate()

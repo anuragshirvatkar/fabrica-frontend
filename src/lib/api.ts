@@ -3,6 +3,7 @@ import type { ApiProduct } from './productDrafts'
 import type { BuyerProfile, BuyerSetupInput } from './buyerPreferences'
 import type { SellerProfileData, SellerSetupInput } from './sellerPreferences'
 import type { OrderStatus } from './orderStatuses'
+import { isSessionExpiredError, notifySessionExpired } from './sessionExpiry'
 
 export type { SellerSetupInput, SellerProfileData } from './sellerPreferences'
 export type { OrderStatus } from './orderStatuses'
@@ -116,6 +117,9 @@ export async function apiRequest<T>(
       code: error.code,
       message: error.message,
     })
+    if (isSessionExpiredError(error, { hadToken: Boolean(token) })) {
+      notifySessionExpired({ code: error.code })
+    }
     throw error
   }
 
@@ -208,13 +212,19 @@ export type SellerDashboard = {
   publishedCount: number
   draftCount: number
   totalProductCount: number
+  totalFabricSold?: number
   pendingOrderCount: number
   inventoryAlertCount: number
+  productChange: number
+  productTrend: number[]
+  productCumulative: number[]
   series: Array<{
     key: string
     label: string
     sales: number
     orders: number
+    products: number
+    meters?: number
   }>
   recentOrders: Array<{
     _id: string
@@ -452,7 +462,16 @@ async function downloadPdf(path: string, token: string, fallbackName: string) {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiError | null
-    throw new Error(payload?.message || 'Failed to download invoice')
+    const error = new Error(payload?.message || 'Failed to download invoice') as Error & {
+      code?: string
+      status?: number
+    }
+    error.code = payload?.code
+    error.status = response.status
+    if (isSessionExpiredError(error, { hadToken: Boolean(token) })) {
+      notifySessionExpired({ code: error.code })
+    }
+    throw error
   }
 
   const blob = await response.blob()
@@ -839,6 +858,81 @@ export type AiRecommendation = {
   reason: string
 }
 
+export type AiOnboardingField = {
+  key: string
+  label: string
+  mode: 'single' | 'multi' | 'text' | 'address'
+  options: string[]
+  allowOther?: boolean
+  otherKey?: string | null
+  optional?: boolean
+  question: string
+  states?: string[]
+}
+
+export type AiOnboardingResponse = {
+  success: true
+  role: 'BUYER' | 'SELLER'
+  answers: Record<string, unknown>
+  complete: boolean
+  progress: { done: number; total: number }
+  field: AiOnboardingField | null
+  assistantMessage: string
+  accepted?: boolean
+}
+
+export async function startAiOnboarding(token: string, role: 'BUYER' | 'SELLER') {
+  return apiRequest<AiOnboardingResponse>('/api/ai/onboarding/start', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ role }),
+  })
+}
+
+export async function postAiOnboardingTurn(
+  token: string,
+  data: {
+    role: 'BUYER' | 'SELLER'
+    message?: string
+    answers?: Record<string, unknown>
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+    selectedOptions?: string | string[] | null
+    addressPatch?: {
+      line1?: string
+      city?: string
+      state?: string
+      pincode?: string
+    } | null
+    skipOptional?: boolean
+  },
+) {
+  return apiRequest<AiOnboardingResponse>('/api/ai/onboarding/turn', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(data),
+  })
+}
+
+export async function transcribeAudio(
+  token: string,
+  blob: Blob,
+  options?: { context?: 'marketplace' | 'onboarding' | 'search'; hint?: string },
+) {
+  const body = new FormData()
+  const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
+  body.append('audio', blob, `speech.${extension}`)
+  body.append('context', options?.context || 'marketplace')
+  if (options?.hint) body.append('hint', options.hint)
+  return apiRequest<{ success: true; text: string; raw?: string; changed?: boolean }>(
+    '/api/ai/transcribe',
+    {
+      method: 'POST',
+      token,
+      body,
+    },
+  )
+}
+
 export async function postAiChat(
   data: { message: string; history?: AiChatHistoryItem[]; productId?: string | null },
   token?: string | null,
@@ -849,6 +943,16 @@ export async function postAiChat(
     reply: string
     products: MarketplaceApiProduct[]
     filters: AiNlFilters | null
+    navigateTo?:
+      | 'profile'
+      | 'marketplace'
+      | 'cart'
+      | 'orders'
+      | 'favorites'
+      | 'addresses'
+      | null
+    cartUpdated?: boolean
+    openProductId?: string | null
     recommendations?: AiRecommendation[]
     comparison?: Record<string, unknown>
   }>('/api/ai/chat', {

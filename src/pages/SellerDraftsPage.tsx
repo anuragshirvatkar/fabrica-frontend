@@ -4,6 +4,7 @@ import { FileText, Pencil, Trash2 } from 'lucide-react'
 import { SellerShell } from '../components/seller/SellerShell'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { EmptyState } from '../components/ui/EmptyState'
+import { PageLoader } from '../components/ui/PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { deleteSellerProduct, fetchSellerProducts } from '../lib/api'
 import { apiProductToForm, type ProductFormDraft } from '../lib/productDrafts'
@@ -55,20 +56,29 @@ export function SellerDraftsPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-        <div className="mb-6">
-          <h1 className="font-serif text-3xl md:text-[34px] font-semibold text-black mb-1">
-            Drafts
-          </h1>
-          <p className="text-sm text-gray-500">
-            Continue unfinished product listings saved automatically.
-          </p>
+      <main className="w-full min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight mb-1">
+              Drafts
+            </h1>
+            <p className="text-sm text-gray-500">
+              Continue unfinished product listings saved automatically.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/seller/products/new')}
+            className="btn-pill-black px-5 py-2.5 text-sm self-start sm:self-auto"
+          >
+            Add Product
+          </button>
         </div>
 
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
         {loading ? (
-          <p className="text-sm text-gray-500">Loading drafts...</p>
+          <PageLoader label="Loading drafts" />
         ) : drafts.length === 0 ? (
           <EmptyState
             icon={FileText}

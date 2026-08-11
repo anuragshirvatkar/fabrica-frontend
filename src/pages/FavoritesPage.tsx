@@ -45,16 +45,18 @@ export function FavoritesPage() {
     <div className="flex-1 flex flex-col bg-[#f9f9f9]">
       <div className="min-h-[calc(100dvh+14rem)] flex flex-col">
       <Navbar variant="solid" showActions fixed={false} />
-      <Container className="flex-1 py-8 md:py-10 pb-36 md:pb-52">
+      <Container wide className="flex-1 py-8 md:py-10 pb-16 md:pb-20">
         <PageBackLink to="/marketplace" label="Back to marketplace" className="mb-3" />
-        <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-black mb-1">Favorites</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          {loading
-            ? 'Loading favorites…'
-            : products.length === 0
-              ? 'Fabrics you saved for later.'
-              : `${products.length} saved item${products.length === 1 ? '' : 's'}`}
-        </p>
+        <div className="w-full mb-6">
+          <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-black mb-1">Favorites</h1>
+          <p className="text-sm text-gray-500">
+            {loading
+              ? 'Loading favorites…'
+              : products.length === 0
+                ? 'Fabrics you saved for later.'
+                : `${products.length} saved item${products.length === 1 ? '' : 's'}`}
+          </p>
+        </div>
 
         {loading ? (
           <PageLoader label="Loading favorites" />

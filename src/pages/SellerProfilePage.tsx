@@ -37,7 +37,7 @@ function ChoiceChip({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3.5 py-2 rounded-full text-sm border transition-colors ${
+      className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-xs sm:text-sm border transition-colors ${
         selected
           ? 'bg-black text-white border-black'
           : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
@@ -49,7 +49,7 @@ function ChoiceChip({
 }
 
 export function SellerProfilePage() {
-  const { user, getAccessToken } = useAuth()
+  const { getAccessToken } = useAuth()
   const [form, setForm] = useState<SellerSetupInput>(emptySellerForm)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -124,25 +124,22 @@ export function SellerProfilePage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+      <main className="w-full min-w-0">
         <PageBackLink to="/seller/dashboard" label="Back to dashboard" className="mb-3" />
 
-        <div className="flex items-start gap-3 mb-6">
-          <span className="w-11 h-11 rounded-xl bg-[#ece8e3] flex items-center justify-center text-base font-semibold text-gray-800">
-            {(user?.email?.[0] || 'S').toUpperCase()}
-          </span>
-          <div>
-            <h1 className="text-2xl font-serif font-semibold text-black">Seller profile</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Update your business details, hours, categories, and MOQ.
-            </p>
-          </div>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-black tracking-tight">
+            Seller profile
+          </h1>
+          <p className="text-sm text-gray-500 mt-2 leading-relaxed max-w-2xl">
+            Update your business details, hours, categories, and MOQ.
+          </p>
         </div>
 
         {loading ? (
           <PageLoader label="Loading profile" />
         ) : (
-          <div className="max-w-3xl space-y-5">
+          <div className="w-full space-y-5">
             <ProfileAccountCard roleLabel="Seller" />
 
             {error && (
@@ -158,8 +155,9 @@ export function SellerProfilePage() {
               </div>
             )}
 
-            <div className="rounded-xl border border-gray-200 bg-white p-5 md:p-6 space-y-6">
-              <div className="space-y-5">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 md:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.35fr] gap-6 sm:gap-8 lg:gap-0">
+              <div className="space-y-5 min-w-0 lg:pr-8 xl:pr-10">
                 <div>
                   <label
                     htmlFor="profile-company"
@@ -202,8 +200,16 @@ export function SellerProfilePage() {
                     <input
                       id="profile-phone"
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="10-digit mobile"
                       value={form.phone}
-                      onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          phone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                        }))
+                      }
                       className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400"
                     />
                   </div>
@@ -234,7 +240,6 @@ export function SellerProfilePage() {
                     </span>
                   </div>
                 </div>
-              </div>
 
               <div>
                 <p className="text-xs font-semibold text-black mb-2.5">Business address</p>
@@ -297,96 +302,100 @@ export function SellerProfilePage() {
                   </div>
                 </div>
               </div>
+              </div>
 
-              <div>
-                <p className="text-xs font-semibold text-black mb-2.5">Operating hours</p>
-                <div className="flex flex-wrap gap-2">
-                  {OPERATING_HOURS.map((item) => (
-                    <ChoiceChip
-                      key={item}
-                      label={item}
-                      selected={form.operatingHours === item}
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          operatingHours: item,
-                          operatingHoursOther: item === 'Other' ? prev.operatingHoursOther : '',
-                        }))
+              <div className="space-y-5 min-w-0 border-t border-gray-100 pt-6 lg:border-t-0 lg:pt-0 lg:border-l lg:border-gray-100 lg:pl-8 xl:pl-10">
+                <div>
+                  <p className="text-xs font-semibold text-black mb-2.5">Operating hours</p>
+                  <div className="flex flex-wrap gap-2">
+                    {OPERATING_HOURS.map((item) => (
+                      <ChoiceChip
+                        key={item}
+                        label={item}
+                        selected={form.operatingHours === item}
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            operatingHours: item,
+                            operatingHoursOther: item === 'Other' ? prev.operatingHoursOther : '',
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                  {form.operatingHours === 'Other' && (
+                    <input
+                      type="text"
+                      value={form.operatingHoursOther || ''}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, operatingHoursOther: e.target.value }))
                       }
+                      placeholder="Describe your operating hours"
+                      className="mt-3 w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 placeholder:text-gray-400"
                     />
-                  ))}
+                  )}
                 </div>
-                {form.operatingHours === 'Other' && (
-                  <input
-                    type="text"
-                    value={form.operatingHoursOther || ''}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, operatingHoursOther: e.target.value }))
-                    }
-                    placeholder="Describe your operating hours"
-                    className="mt-3 w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 placeholder:text-gray-400"
-                  />
-                )}
-              </div>
 
-              <div>
-                <p className="text-xs font-semibold text-black mb-2.5">Product categories</p>
-                <div className="flex flex-wrap gap-2">
-                  {SELLER_PRODUCT_CATEGORIES.map((item) => (
-                    <ChoiceChip
-                      key={item}
-                      label={item}
-                      selected={form.productCategories.includes(item)}
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          productCategories: toggleValue(prev.productCategories, item),
-                        }))
-                      }
-                    />
-                  ))}
+                <div>
+                  <p className="text-xs font-semibold text-black mb-2.5">Product categories</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SELLER_PRODUCT_CATEGORIES.map((item) => (
+                      <ChoiceChip
+                        key={item}
+                        label={item}
+                        selected={form.productCategories.includes(item)}
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            productCategories: toggleValue(prev.productCategories, item),
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <p className="text-xs font-semibold text-black mb-2.5">Fabric types</p>
-                <div className="flex flex-wrap gap-2">
-                  {SELLER_FABRIC_TYPES.map((item) => (
-                    <ChoiceChip
-                      key={item}
-                      label={item}
-                      selected={form.fabricTypes.includes(item)}
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          fabricTypes: toggleValue(prev.fabricTypes, item),
-                        }))
-                      }
-                    />
-                  ))}
+                <div>
+                  <p className="text-xs font-semibold text-black mb-2.5">Fabric types</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SELLER_FABRIC_TYPES.map((item) => (
+                      <ChoiceChip
+                        key={item}
+                        label={item}
+                        selected={form.fabricTypes.includes(item)}
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            fabricTypes: toggleValue(prev.fabricTypes, item),
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <p className="text-xs font-semibold text-black mb-2.5">Typical MOQ</p>
-                <div className="flex flex-wrap gap-2">
-                  {SELLER_MOQ_RANGES.map((item) => (
-                    <ChoiceChip
-                      key={item}
-                      label={item}
-                      selected={form.moqRange === item}
-                      onClick={() => setForm((prev) => ({ ...prev, moqRange: item }))}
-                    />
-                  ))}
+                <div>
+                  <p className="text-xs font-semibold text-black mb-2.5">Typical MOQ</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SELLER_MOQ_RANGES.map((item) => (
+                      <ChoiceChip
+                        key={item}
+                        label={item}
+                        selected={form.moqRange === item}
+                        onClick={() => setForm((prev) => ({ ...prev, moqRange: item }))}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
+              </div>
 
-              <div className="flex justify-end pt-6">
+              <div className="border-t border-gray-100 mt-6 sm:mt-8 pt-5 flex justify-end">
                 <button
                   type="button"
                   disabled={saving}
                   onClick={handleSave}
-                  className="btn-pill-black px-5 py-2.5 text-sm rounded-lg disabled:opacity-60"
+                  className="btn-pill-black w-full sm:w-auto px-6 py-2.5 text-sm disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : 'Save profile'}
                 </button>

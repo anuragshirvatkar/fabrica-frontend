@@ -3,25 +3,25 @@ import { Search, ShoppingBag, Package, CheckCircle } from 'lucide-react'
 
 const steps = [
   {
-    number: '1',
+    number: '01',
     icon: Search,
     title: 'Search or Ask AI',
     description: 'Find fabrics using AI or browse thousands of products across categories.',
   },
   {
-    number: '2',
+    number: '02',
     icon: ShoppingBag,
     title: 'Compare & Select',
     description: 'Compare fabric specs, pricing, and reviews. Place your order instantly.',
   },
   {
-    number: '3',
+    number: '03',
     icon: Package,
     title: 'We Handle the Rest',
     description: 'We connect, verify, and manage the order. Track your shipment in real-time.',
   },
   {
-    number: '4',
+    number: '04',
     icon: CheckCircle,
     title: 'Get Quality Fabrics',
     description: 'Receive on-time, every time with 100% purchase protection guaranteed.',
@@ -30,42 +30,48 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="w-full py-8 md:py-10 bg-white scroll-mt-20">
+    <section
+      id="how-it-works"
+      className="w-full pt-10 md:pt-12 pb-12 md:pb-16 bg-[var(--color-canvas)] scroll-mt-20"
+    >
       <Container>
-        <h2 className="text-3xl md:text-4xl lg:text-[42px] font-serif font-semibold text-black text-center mb-8 md:mb-10">
-          How Fabrica Works
-        </h2>
+        <div className="text-center max-w-2xl mx-auto mb-8 md:mb-10">
+          <h2 className="text-2xl md:text-3xl font-serif font-semibold text-black leading-tight">
+            How Fabrica Works
+          </h2>
+          <p className="text-sm text-gray-500 mt-2">Simple steps. Seamless sourcing.</p>
+        </div>
 
-        <div className="relative">
-          {/* Dashed connector line - desktop only */}
-          <div
-            className="hidden lg:block absolute top-[52px] left-[12%] right-[12%] h-px border-t-2 border-dashed border-gray-200"
-            aria-hidden="true"
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-6">
-            {steps.map((step) => {
-              const Icon = step.icon
-              return (
-                <div key={step.number} className="relative text-center px-2">
-                  <div className="flex flex-col items-center mb-5">
-                    <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-semibold flex items-center justify-center mb-4 relative z-10">
-                      {step.number}
-                    </div>
-                    <div className="w-16 h-16 rounded-full border border-gray-200 flex items-center justify-center bg-white relative z-10">
-                      <Icon size={26} strokeWidth={1.5} className="text-black" />
-                    </div>
-                  </div>
-                  <h3 className="text-base md:text-lg font-semibold text-black mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-black/10">
+          {steps.map((step, index) => {
+            const Icon = step.icon
+            return (
+              <div
+                key={step.number}
+                className={[
+                  'flex flex-col items-center text-center gap-2.5 px-3 sm:px-5 lg:px-6 py-5 sm:py-4 lg:py-1',
+                  index > 0 ? 'max-sm:border-t max-sm:border-black/10' : '',
+                  index % 2 === 1 ? 'sm:max-lg:border-l sm:max-lg:border-black/10' : '',
+                  index >= 2 ? 'sm:max-lg:border-t sm:max-lg:border-black/10' : '',
+                ].join(' ')}
+              >
+                <span className="text-[11px] font-medium tracking-[0.14em] text-gray-400">
+                  {step.number}
+                </span>
+                <div className="w-11 h-11 rounded-full bg-[#ece8e3] flex items-center justify-center">
+                  <Icon size={18} strokeWidth={1.5} className="text-black" />
+                </div>
+                <div>
+                  <h3 className="text-sm md:text-[15px] font-semibold text-black mb-1">
                     {step.title}
                   </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed max-w-[220px] mx-auto">
+                  <p className="text-xs md:text-sm text-gray-500 leading-relaxed max-w-[200px] mx-auto">
                     {step.description}
                   </p>
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })}
         </div>
       </Container>
     </section>

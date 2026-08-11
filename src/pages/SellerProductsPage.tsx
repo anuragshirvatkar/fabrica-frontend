@@ -98,10 +98,10 @@ export function SellerProductsPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+      <main className="w-full min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="font-serif text-3xl md:text-[34px] font-semibold text-black mb-1">
+            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight mb-1">
               Products
             </h1>
             <p className="text-sm text-gray-500">
@@ -111,7 +111,7 @@ export function SellerProductsPage() {
           <button
             type="button"
             onClick={() => navigate('/seller/products/new')}
-            className="btn-pill-black px-5 py-2.5 text-sm rounded-lg self-start sm:self-auto"
+            className="btn-pill-black px-5 py-2.5 text-sm self-start sm:self-auto"
           >
             <Plus size={16} />
             Add Product
@@ -197,7 +197,7 @@ export function SellerProductsPage() {
             onAction={clearFilters}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5">
             {filteredProducts.map((product) => {
               const cover =
                 product.variants.find((variant) => variant.images.length > 0)?.images[0] || null
@@ -208,7 +208,7 @@ export function SellerProductsPage() {
               return (
                 <article
                   key={product.id}
-                  className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group h-full flex flex-col"
+                  className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-gray-300 hover:shadow-sm transition-all group h-full flex flex-col"
                 >
                   <div className="relative aspect-[5/4] overflow-hidden bg-gray-100">
                     {cover ? (
@@ -242,19 +242,19 @@ export function SellerProductsPage() {
                     </div>
                   </div>
 
-                  <div className="p-3 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-black text-[13px] mb-1 leading-snug line-clamp-2">
+                  <div className="p-3.5 sm:p-4 flex-1 flex flex-col">
+                    <h3 className="font-serif font-semibold text-black text-sm sm:text-base mb-1 leading-snug line-clamp-2">
                       {product.name || 'Untitled product'}
                     </h3>
-                    <p className="text-[11px] text-gray-500 mb-2 line-clamp-1">
+                    <p className="text-xs text-gray-500 mb-2 line-clamp-1">
                       {product.gsm ? `${product.gsm} GSM` : '—'}
                       {product.width ? ` · ${product.width} in` : ''}
                       {product.category ? ` · ${product.category}` : ''}
                     </p>
 
-                    <p className="text-base font-semibold text-black mb-2">
+                    <p className="text-lg font-semibold text-black mb-2">
                       {product.price ? `₹${formatNumber(product.price)}` : '—'}{' '}
-                      <span className="text-[11px] font-normal text-gray-500">/ {unit}</span>
+                      <span className="text-xs font-normal text-gray-500">/ {unit}</span>
                     </p>
 
                     <div className="flex items-center gap-1 mb-2.5">

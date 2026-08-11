@@ -17,14 +17,14 @@ export function AiProductCard({ product }: AiProductCardProps) {
         />
         <button
           type="button"
-          className="absolute top-2.5 right-2.5 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-sm"
+          className="absolute top-2.5 right-2.5 z-20 p-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]"
           aria-label="Add to wishlist"
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
           }}
         >
-          <Heart size={15} className="text-gray-600" />
+          <Heart size={20} strokeWidth={1.75} className="fill-transparent text-white" />
         </button>
         <span className="absolute bottom-2.5 left-2.5 text-[11px] font-medium px-2 py-0.5 rounded-md bg-white/90 text-gray-800 backdrop-blur-sm">
           {product.category}

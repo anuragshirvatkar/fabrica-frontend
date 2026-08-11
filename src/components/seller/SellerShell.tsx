@@ -83,10 +83,10 @@ export function SellerShell({
   const initials = getInitials(seller?.companyName, user?.email)
 
   return (
-    <div className="min-h-screen bg-[#f7f7f7] flex">
-      <aside className="hidden lg:flex w-[232px] shrink-0 flex-col border-r border-gray-200 bg-[#fafafa]">
+    <div className="min-h-screen bg-canvas flex">
+      <aside className="hidden lg:flex w-[232px] shrink-0 flex-col border-r border-gray-200 bg-white">
         <div className="h-16 px-5 flex items-center border-b border-gray-200/80">
-          <Link to="/seller/dashboard" className="font-serif text-xl font-semibold tracking-[0.06em]">
+          <Link to="/seller/dashboard" className="brand-mark text-xl">
             FABRICA
           </Link>
         </div>
@@ -139,10 +139,7 @@ export function SellerShell({
 
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="h-16 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 lg:px-8">
-          <Link
-            to="/seller/dashboard"
-            className="lg:hidden font-serif text-lg font-semibold tracking-[0.06em]"
-          >
+          <Link to="/seller/dashboard" className="lg:hidden brand-mark text-lg">
             FABRICA
           </Link>
           <div className="hidden lg:block" />
@@ -209,14 +206,16 @@ export function SellerShell({
                 }
               >
                 <Icon size={15} />
-                <span className="hidden min-[380px]:inline">{label}</span>
+                <span>{label}</span>
               </NavLink>
             ),
           )}
         </div>
 
-        {/* Content fills at least one viewport so the footer sits below the fold */}
-        <div className="min-h-[100dvh] pb-12 md:pb-16">{children}</div>
+        {/* Just enough height that the footer sits below the fold, without a huge empty scroll */}
+        <div className="flex-1 w-full min-w-0 min-h-[calc(100dvh-4rem)] px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-6 md:py-8 pb-10 md:pb-12">
+          {children}
+        </div>
         <Footer showMarketplace={false} />
       </div>
     </div>

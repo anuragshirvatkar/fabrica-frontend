@@ -6,6 +6,7 @@ import { CategoryGrid } from '../components/category-grid'
 import { FeaturedProducts } from '../components/featured-products'
 import { CTASection } from '../components/cta-section'
 import { HowItWorks } from '../components/how-it-works'
+import { FaqSection } from '../components/faq-section'
 import { StatsTestimonialSection } from '../components/stats'
 import { Footer } from '../components/footer'
 import { PageLoader } from '../components/ui/PageLoader'
@@ -33,14 +34,15 @@ export function LandingPage() {
   }
 
   return (
-    <main className="flex-1 flex flex-col bg-[#f9f9f9]">
+    <main className="flex-1 flex flex-col bg-[var(--color-canvas)]">
       <Navbar />
       <Hero />
       <TrustSection />
-      <CategoryGrid />
       <FeaturedProducts />
+      <CategoryGrid />
       <CTASection />
       <HowItWorks />
+      <FaqSection />
       <StatsTestimonialSection />
       <Footer />
     </main>

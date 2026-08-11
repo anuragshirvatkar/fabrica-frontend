@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { MarketplaceFacets } from '../../lib/api'
+import { formatNumber } from '../../lib/format'
 
 function FilterSection({
   title,
@@ -28,6 +29,117 @@ function FilterSection({
         )}
       </button>
       {open && children}
+    </div>
+  )
+}
+
+const PRICE_THUMB =
+  'pointer-events-none absolute inset-0 h-5 w-full appearance-none bg-transparent ' +
+  '[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none ' +
+  '[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full ' +
+  '[&::-webkit-slider-thumb]:bg-black [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white ' +
+  '[&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:cursor-pointer ' +
+  '[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 ' +
+  '[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-black [&::-moz-range-thumb]:border-2 ' +
+  '[&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:cursor-pointer'
+
+function PriceRangeSlider({
+  boundMin,
+  boundMax,
+  minPrice,
+  maxPrice,
+  onCommit,
+}: {
+  boundMin: number
+  boundMax: number
+  minPrice: string
+  maxPrice: string
+  onCommit: (min: string, max: string) => void
+}) {
+  const span = Math.max(boundMax - boundMin, 1)
+  const [localMin, setLocalMin] = useState(
+    minPrice !== '' ? Number(minPrice) : boundMin,
+  )
+  const [localMax, setLocalMax] = useState(
+    maxPrice !== '' ? Number(maxPrice) : boundMax,
+  )
+  const localMinRef = useRef(localMin)
+  const localMaxRef = useRef(localMax)
+
+  useEffect(() => {
+    const nextMin = minPrice !== '' ? Number(minPrice) : boundMin
+    const nextMax = maxPrice !== '' ? Number(maxPrice) : boundMax
+    setLocalMin(nextMin)
+    setLocalMax(nextMax)
+    localMinRef.current = nextMin
+    localMaxRef.current = nextMax
+  }, [minPrice, maxPrice, boundMin, boundMax])
+
+  const clampedMin = Math.min(Math.max(localMin, boundMin), localMax)
+  const clampedMax = Math.max(Math.min(localMax, boundMax), clampedMin)
+  const leftPct = ((clampedMin - boundMin) / span) * 100
+  const rightPct = ((clampedMax - boundMin) / span) * 100
+
+  const commit = () => {
+    const nextMin = localMinRef.current
+    const nextMax = localMaxRef.current
+    const atFloor = nextMin <= boundMin
+    const atCeil = nextMax >= boundMax
+    onCommit(atFloor ? '' : String(nextMin), atCeil ? '' : String(nextMax))
+  }
+
+  if (!Number.isFinite(boundMin) || !Number.isFinite(boundMax) || boundMax < boundMin) {
+    return <p className="text-sm text-gray-400">Price range unavailable</p>
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs text-gray-600 mb-3 tabular-nums">
+        <span>₹{formatNumber(clampedMin)}</span>
+        <span>₹{formatNumber(clampedMax)}</span>
+      </div>
+
+      <div className="relative h-6 flex items-center touch-none">
+        <div className="absolute inset-x-0 h-1 rounded-full bg-gray-200" />
+        <div
+          className="absolute h-1 rounded-full bg-black"
+          style={{ left: `${leftPct}%`, right: `${100 - rightPct}%` }}
+        />
+        <input
+          type="range"
+          min={boundMin}
+          max={boundMax}
+          step={1}
+          value={clampedMin}
+          aria-label="Minimum price"
+          className={`${PRICE_THUMB} z-[1]`}
+          onChange={(e) => {
+            const next = Math.min(Number(e.target.value), localMaxRef.current)
+            localMinRef.current = next
+            setLocalMin(next)
+          }}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
+        />
+        <input
+          type="range"
+          min={boundMin}
+          max={boundMax}
+          step={1}
+          value={clampedMax}
+          aria-label="Maximum price"
+          className={`${PRICE_THUMB} z-[2]`}
+          onChange={(e) => {
+            const next = Math.max(Number(e.target.value), localMinRef.current)
+            localMaxRef.current = next
+            setLocalMax(next)
+          }}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          onKeyUp={commit}
+        />
+      </div>
     </div>
   )
 }
@@ -62,18 +174,8 @@ export function FilterSidebar({
   const categories = facets?.categories || []
   const moqRanges = facets?.moqRanges || []
   const gsmRanges = facets?.gsmRanges || []
-  const [minPrice, setMinPrice] = useState(value.minPrice)
-  const [maxPrice, setMaxPrice] = useState(value.maxPrice)
-
-  useEffect(() => {
-    setMinPrice(value.minPrice)
-    setMaxPrice(value.maxPrice)
-  }, [value.minPrice, value.maxPrice])
-
-  const commitPrice = () => {
-    if (minPrice === value.minPrice && maxPrice === value.maxPrice) return
-    onChange({ ...value, minPrice, maxPrice })
-  }
+  const boundMin = Math.floor(facets?.price.min ?? 0)
+  const boundMax = Math.ceil(facets?.price.max ?? 0)
 
   return (
     <div className="w-full min-w-0 overflow-hidden">
@@ -122,32 +224,20 @@ export function FilterSidebar({
       </FilterSection>
 
       <FilterSection title="Price Range (₹)">
-        <div className="flex gap-2 min-w-0">
-          <input
-            type="number"
-            min={0}
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            onBlur={commitPrice}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur()
+        {facets ? (
+          <PriceRangeSlider
+            boundMin={boundMin}
+            boundMax={boundMax}
+            minPrice={value.minPrice}
+            maxPrice={value.maxPrice}
+            onCommit={(minPrice, maxPrice) => {
+              if (minPrice === value.minPrice && maxPrice === value.maxPrice) return
+              onChange({ ...value, minPrice, maxPrice })
             }}
-            placeholder={facets ? String(Math.floor(facets.price.min || 0)) : 'Min'}
-            className="flex-1 min-w-0 px-2.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400"
           />
-          <input
-            type="number"
-            min={0}
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            onBlur={commitPrice}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur()
-            }}
-            placeholder={facets ? String(Math.ceil(facets.price.max || 0)) : 'Max'}
-            className="flex-1 min-w-0 px-2.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400"
-          />
-        </div>
+        ) : (
+          <p className="text-sm text-gray-400">Loading…</p>
+        )}
       </FilterSection>
 
       <FilterSection title="GSM">

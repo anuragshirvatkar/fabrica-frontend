@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageCircleQuestion, Send, Sparkles } from 'lucide-react'
+import { MessageCircleQuestion, Send } from 'lucide-react'
 import { postProductQa } from '../../lib/api'
 import { useAuth } from '../../context/AuthContext'
 import { getFriendlyErrorMessage } from '../../lib/errors'
@@ -103,12 +103,7 @@ export function ProductQaPanel({ productId, productName }: ProductQaPanelProps) 
         </div>
       )}
 
-      {turns.length === 0 && !loading ? (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center">
-          <Sparkles size={18} className="mx-auto text-gray-400 mb-2" />
-          <p className="text-sm text-gray-500">Ask anything about specs, use cases, MOQ, or colors.</p>
-        </div>
-      ) : (
+      {(turns.length > 0 || loading) && (
         <div className="space-y-4">
           {turns.map((turn) => (
             <div key={`${turn.question}-${turn.answer.slice(0, 24)}`} className="space-y-2">

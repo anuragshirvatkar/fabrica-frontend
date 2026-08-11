@@ -1,3 +1,5 @@
+export { isSessionExpiredError } from './sessionExpiry'
+
 /** True when the API host is unreachable or the browser is offline. */
 export function isConnectionError(error: unknown): boolean {
   if (!error) return false

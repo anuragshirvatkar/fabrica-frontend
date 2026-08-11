@@ -1,6 +1,17 @@
 @import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
+/* Tailwind v4 design tokens — keep one display face + one UI face everywhere */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+  --color-canvas: #f7f6f4;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f0eeea;
+  --radius-control: 0.75rem;
+}
+
 @layer base {
   * {
     margin: 0;
@@ -9,15 +20,15 @@
   }
 
   html {
-    background-color: #f9f9f9;
+    background-color: var(--color-canvas);
     scroll-behavior: smooth;
     min-height: 100%;
     overflow-x: clip;
   }
 
   body {
-    font-family: 'Inter', sans-serif;
-    background-color: #f9f9f9;
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
     color: #000000;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -34,8 +45,9 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: var(--font-serif);
     font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   /* Hide Edge/IE native password reveal so custom eye toggles aren't doubled */
@@ -55,7 +67,7 @@
   }
 
   button {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     cursor: pointer;
   }
 }
@@ -63,6 +75,18 @@
 @layer components {
   .container-wide {
     @apply max-w-[1280px] mx-auto px-5 sm:px-6 md:px-8 lg:px-12;
+  }
+
+  .container-wider {
+    @apply w-full max-w-none mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16;
+  }
+
+  /* Shared brand wordmark — same face/tracking in nav, seller shell, footer */
+  .brand-mark {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .btn-pill {

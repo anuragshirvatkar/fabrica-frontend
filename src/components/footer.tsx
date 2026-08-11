@@ -11,6 +11,7 @@ const marketplaceLinks = [
 
 const companyLinks: Array<{ label: string; to?: string; href?: string }> = [
   { label: 'About Us', to: '/about' },
+  { label: 'FAQ', to: '/faq' },
   { label: 'Privacy Policy', to: '/privacy' },
   { label: 'How it works', href: 'https://youtu.be/h5J1ntMXC70' },
 ]
@@ -71,10 +72,7 @@ export function Footer({ showMarketplace = true }: FooterProps) {
           }`}
         >
           <div className={showMarketplace ? 'sm:col-span-2 lg:col-span-1' : ''}>
-            <Link
-              to="/"
-              className="inline-block font-semibold text-lg tracking-wide text-white mb-4"
-            >
+            <Link to="/" className="brand-mark inline-block text-lg text-white mb-4">
               FABRICA
             </Link>
             <p className="text-sm text-white/55 leading-relaxed max-w-xs mb-5">

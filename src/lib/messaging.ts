@@ -68,7 +68,8 @@ export async function registerPushNotifications(authToken: string) {
 
     return fcmToken
   } catch (error) {
-    console.error('[fcm] register failed', error)
+    // Common on localhost / without a working push service — non-fatal.
+    console.warn('[fcm] register skipped', error instanceof Error ? error.message : error)
     return null
   }
 }

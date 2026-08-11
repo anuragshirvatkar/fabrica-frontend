@@ -54,9 +54,11 @@ export function SellerPaymentsPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+      <main className="w-full min-w-0">
         <div className="mb-6">
-          <h1 className="font-serif text-3xl font-semibold text-black mb-1">Payments</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight mb-1">
+            Payments
+          </h1>
           <p className="text-sm text-gray-500">
             Keep track of payment records for your orders.
           </p>
@@ -108,15 +110,20 @@ export function SellerPaymentsPage() {
                             setDownloadingId(null)
                           }
                         }}
-                        className="inline-flex items-center gap-1 h-9 px-3 rounded-md border border-gray-200 text-xs font-medium text-gray-700 hover:bg-white disabled:opacity-50"
+                        className="inline-flex items-center gap-1 h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-white disabled:opacity-50"
                       >
                         <Download size={13} />
-                        {downloadingId === payment._id ? '...' : 'Download purchase invoice'}
+                        <span className="sm:hidden">
+                          {downloadingId === payment._id ? '...' : 'Invoice'}
+                        </span>
+                        <span className="hidden sm:inline">
+                          {downloadingId === payment._id ? '...' : 'Download invoice'}
+                        </span>
                       </button>
                       <button
                         type="button"
                         onClick={() => navigate(`/seller/payments/${payment._id}`)}
-                        className="inline-flex items-center gap-1 h-9 px-3 rounded-md bg-black text-white text-xs font-medium hover:bg-gray-800"
+                        className="inline-flex items-center gap-1 h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg bg-black text-white text-xs font-medium hover:bg-gray-800"
                       >
                         View
                         <ArrowRight size={13} />

@@ -43,6 +43,7 @@ import {
   type EmailLoginProbe,
 } from '../lib/firebaseErrors'
 import { registerPushNotifications } from '../lib/messaging'
+import { notifySessionExpired } from '../lib/sessionExpiry'
 import { isSellerProfileComplete } from '../lib/sellerPreferences'
 
 type AuthContextValue = {
@@ -509,9 +510,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getAccessToken = useCallback(async () => {
     const current = auth.currentUser
     if (!current) return null
-    const token = await current.getIdToken()
-    authStorage.setToken(token)
-    return token
+    try {
+      const token = await current.getIdToken()
+      authStorage.setToken(token)
+      return token
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as { code: string }).code)
+          : ''
+      if (
+        code === 'auth/user-token-expired' ||
+        code === 'auth/id-token-expired' ||
+        code === 'auth/user-disabled' ||
+        code === 'auth/invalid-user-token' ||
+        code === 'auth/requires-recent-login'
+      ) {
+        notifySessionExpired({ code })
+      }
+      return null
+    }
   }, [])
 
   const markSellerSetupCompleted = useCallback(() => {

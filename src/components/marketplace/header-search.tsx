@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, X } from 'lucide-react'
+import { Mic, Search, X } from 'lucide-react'
 import {
   fetchMarketplaceSuggest,
   type MarketplaceSuggestProduct,
 } from '../../lib/api'
 import { formatNumber } from '../../lib/format'
+import { VoiceSearchOverlay } from './VoiceSearchOverlay'
 
 type HeaderSearchProps = {
   className?: string
@@ -19,6 +20,7 @@ export function HeaderSearch({
   const navigate = useNavigate()
   const [query, setQuery] = useState(initialQuery)
   const [open, setOpen] = useState(false)
+  const [voiceOpen, setVoiceOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<MarketplaceSuggestProduct[]>([])
   const rootRef = useRef<HTMLDivElement>(null)
@@ -110,14 +112,34 @@ export function HeaderSearch({
           <button
             type="button"
             onClick={clearQuery}
-            className="shrink-0 w-9 h-9 mr-1 inline-flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-200/80 hover:text-black transition-colors"
+            className="shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-200/80 hover:text-black transition-colors"
             aria-label="Clear search"
             title="Clear search"
           >
             <X size={15} />
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            setVoiceOpen(true)
+          }}
+          className="shrink-0 w-9 h-9 mr-1 inline-flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-200/80 hover:text-black transition-colors"
+          aria-label="Voice search"
+          title="Voice search"
+        >
+          <Mic size={15} />
+        </button>
       </div>
+
+      {voiceOpen ? (
+        <VoiceSearchOverlay
+          open
+          onClose={() => setVoiceOpen(false)}
+          initialQuery={query}
+        />
+      ) : null}
 
       {open && query.trim().length >= 2 && (
         <div className="absolute left-0 right-0 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50 max-h-[min(24rem,70dvh)] overflow-y-auto">

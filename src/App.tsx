@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
 import { AiAssistant } from './components/ai/AiAssistant'
 import { StaticAssetsGate } from './components/StaticAssetsGate'
 import {
@@ -7,9 +6,11 @@ import {
   ProtectedRoute,
   VerifyEmailRoute,
 } from './components/auth/ProtectedRoute'
+import { SessionExpiryHandler } from './components/auth/SessionExpiryHandler'
 import { LandingPage } from './pages/LandingPage'
 import { AboutUsPage } from './pages/AboutUsPage'
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage'
+import { FaqPage } from './pages/FaqPage'
 import { MarketplacePage } from './pages/MarketplacePage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { SignUpPage } from './pages/SignUpPage'
@@ -38,12 +39,13 @@ import { SellerPaymentDetailPage } from './pages/SellerPaymentDetailPage'
 
 export default function App() {
   return (
-    <AuthProvider>
       <StaticAssetsGate>
         <BrowserRouter>
+          <SessionExpiryHandler />
           <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutUsPage />} />
+          <Route path="/faq" element={<FaqPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/marketplace" element={<MarketplacePage />} />
           <Route path="/marketplace/:id" element={<ProductDetailPage />} />
@@ -239,6 +241,5 @@ export default function App() {
         <AiAssistant />
       </BrowserRouter>
       </StaticAssetsGate>
-    </AuthProvider>
   )
 }

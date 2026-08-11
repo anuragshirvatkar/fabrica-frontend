@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { PageBackLink } from '../components/ui/PageBackLink'
 import { Download } from 'lucide-react'
 import { SellerShell } from '../components/seller/SellerShell'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
@@ -82,19 +83,17 @@ export function SellerOrderDetailPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-        <Link to="/seller/orders" className="text-sm text-gray-600 hover:text-black">
-          ← Back to orders
-        </Link>
+      <main className="w-full min-w-0">
+        <PageBackLink to="/seller/orders" label="Back to orders" className="mb-4" />
 
-        {error && <p className="text-sm text-red-600 mt-4">{error}</p>}
+        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
         {!order ? (
           <PageLoader label="Loading order" />
         ) : (
-          <div className="mt-4 space-y-5">
+          <div className="w-full space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-              <div>
-                <h1 className="font-serif text-3xl font-semibold text-black">
+              <div className="min-w-0">
+                <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight">
                   Order #{String(order._id).slice(-6).toUpperCase()}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
@@ -198,7 +197,7 @@ export function SellerOrderDetailPage() {
               </section>
             )}
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5">
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-8">
               <h2 className="font-serif text-xl font-semibold mb-3">Items</h2>
               <div className="space-y-3">
                 {order.items.map((item, index) => (
@@ -226,7 +225,7 @@ export function SellerOrderDetailPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5">
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-8">
               <h2 className="font-serif text-xl font-semibold mb-3">Ship to</h2>
               <p className="text-sm text-black font-medium">{order.shippingAddress.name}</p>
               <p className="text-sm text-gray-600 mt-1">

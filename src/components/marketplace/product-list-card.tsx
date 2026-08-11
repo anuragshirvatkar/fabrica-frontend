@@ -57,59 +57,78 @@ export function ProductListCard({
         image={product.image}
         imageAlt={product.name}
         imageBadge={
-          matchedTag ? (
-            <ForYouBadge reason={product.forYouReason} className="absolute top-2 left-2 z-10" />
-          ) : null
+          <>
+            {matchedTag ? (
+              <ForYouBadge
+                reason={product.forYouReason}
+                className="absolute top-1.5 left-1.5 z-10 hidden sm:inline-flex scale-90 origin-top-left"
+              />
+            ) : null}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={toggleFavorite}
+              className="absolute top-1.5 right-1.5 z-20 p-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]"
+              aria-label={favorited ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <Heart
+                size={16}
+                strokeWidth={1.75}
+                className={
+                  favorited ? 'fill-white text-white' : 'fill-transparent text-white'
+                }
+              />
+            </button>
+          </>
         }
         aside={
           <>
-            <div className="sm:text-right">
-              <p className="font-semibold text-black text-lg md:text-xl leading-none">
+            <div className="min-w-0 sm:text-right">
+              <p className="font-semibold text-black text-base sm:text-lg md:text-xl leading-none">
                 ₹{formatNumber(product.price)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">per {product.weave || 'meter'}</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">
+                per {product.weave || 'meter'}
+                <span className="sm:hidden">
+                  {' '}
+                  · {product.inStock ? 'In stock' : 'Made to order'}
+                </span>
+              </p>
+              <p className="hidden sm:block text-xs text-gray-500 mt-1">
                 {product.inStock ? 'In stock' : 'Made to order'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={toggleFavorite}
-                className="w-9 h-9 rounded-md border border-gray-200 flex items-center justify-center hover:bg-[#f5f3ef] shrink-0"
-                aria-label={favorited ? 'Remove from wishlist' : 'Add to wishlist'}
-              >
-                <Heart
-                  size={15}
-                  className={favorited ? 'fill-red-500 text-red-500' : 'text-gray-600'}
-                />
-              </button>
-              <Link
-                to={`/marketplace/${product.id}`}
-                className="inline-flex items-center gap-1 h-9 px-3 rounded-md bg-black text-white text-xs font-medium hover:bg-gray-800"
-              >
-                View
-                <ArrowRight size={13} />
-              </Link>
-            </div>
+            <Link
+              to={`/marketplace/${product.id}`}
+              className="inline-flex items-center gap-1 h-8 sm:h-9 px-2.5 sm:px-3 rounded-md bg-black text-white text-xs font-medium hover:bg-gray-800 shrink-0"
+            >
+              View
+              <ArrowRight size={13} />
+            </Link>
           </>
         }
       >
-        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 mb-1">
-          {product.category}
-        </p>
-        <h3 className="font-serif text-base sm:text-lg md:text-xl font-semibold text-black leading-snug line-clamp-2">
+        <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+          <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            {product.category}
+          </p>
+          {matchedTag ? (
+            <span className="sm:hidden text-[9px] font-semibold tracking-wide text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded-full">
+              For you
+            </span>
+          ) : null}
+        </div>
+        <h3 className="font-serif text-sm sm:text-lg md:text-xl font-semibold text-black leading-snug line-clamp-2">
           {product.name}
         </h3>
-        <p className="text-sm text-gray-500 mt-1.5">
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
           {product.gsm} · {product.width} width · MOQ {formatNumber(product.moq)}m
         </p>
-        <div className="flex items-center gap-1.5 mt-2.5">
+        <div className="flex items-center gap-1.5 mt-1.5 sm:mt-2.5">
           {product.colors.slice(0, 5).map((color) => (
             <span
               key={color}
-              className="w-4 h-4 rounded-full border border-gray-200"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-gray-200"
               style={{ backgroundColor: color }}
             />
           ))}

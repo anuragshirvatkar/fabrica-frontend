@@ -39,7 +39,7 @@ export function toFabricProduct(product: MarketplaceApiProduct): FabricProduct {
   return {
     id: product._id,
     name: product.name,
-    image: product.coverImage || product.variants.find((v) => v.images[0])?.images[0] || '',
+    image: product.coverImage || product.variants?.find((v) => v.images[0])?.images[0] || '',
     gsm: product.gsm != null ? `${product.gsm} GSM` : '—',
     width: product.width != null ? `${product.width}"` : '—',
     composition: product.category || 'Fabric',

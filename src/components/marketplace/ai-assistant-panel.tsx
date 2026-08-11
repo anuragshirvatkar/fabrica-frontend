@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Sparkles, X, Send, Info, CheckCheck, Mic, MicOff } from 'lucide-react'
-import { postAiChat, type AiChatHistoryItem } from '../../lib/api'
+import { Link, useNavigate } from 'react-router-dom'
+import { Sparkles, X, Send, Info, CheckCheck, Mic, MicOff, Eraser } from 'lucide-react'
+import { postAiChat, type AiChatHistoryItem, addCartItem, fetchMarketplaceProduct, fetchMarketplaceProducts } from '../../lib/api'
 import { formatNumber } from '../../lib/format'
 import { useAuth } from '../../context/AuthContext'
+import { useWhisperMic } from '../../hooks/useWhisperMic'
+import {
+  cancelSpeech,
+  detectAuthRefusal,
+  detectCartAction,
+  detectOpenProductAction,
+  detectVoiceNavigation,
+  pathForNavigateTo,
+  pickBestProduct,
+  speakFabrica,
+} from '../../lib/speech'
 
 const refineTags = [
   'Under ₹400 /meter',
@@ -36,22 +47,56 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+function defaultWelcome(initialSummary?: string) {
+  return (
+    initialSummary?.trim() ||
+    'Ask me to refine this search — budget, GSM, color, or end use. I only recommend fabrics from the Fabrica catalog.'
+  )
+}
+
+function toHistoryItem(message: Msg): AiChatHistoryItem {
+  if (message.role === 'assistant' && message.products?.length) {
+    const catalog = message.products
+      .map((p) => `${p._id}|${p.name}|${p.category || ''}`)
+      .join('; ')
+    return {
+      role: message.role,
+      content: `${message.content}\n[catalog:${catalog}]`,
+    }
+  }
+  return { role: message.role, content: message.content }
+}
+
 export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelProps) {
   const { getAccessToken } = useAuth()
+  const navigate = useNavigate()
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [listening, setListening] = useState(false)
   const [messages, setMessages] = useState<Msg[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content:
-        initialSummary?.trim() ||
-        'Ask me to refine this search — budget, GSM, color, or end use. I only recommend fabrics from the Fabrica catalog.',
+      content: defaultWelcome(initialSummary),
     },
   ])
   const listRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<{ stop: () => void } | null>(null)
+  const sendMessageRef = useRef<(raw: string) => Promise<void>>(async () => {})
+
+  const pushAssistantNote = (content: string) => {
+    setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content }])
+    speakFabrica(content)
+  }
+
+  const { listening, listenLeft, transcribing, toggle: toggleVoice, stopListening } =
+    useWhisperMic({
+      getToken: getAccessToken,
+      listenSeconds: 10,
+      onTranscript: (text) => {
+        setInput(text)
+        void sendMessageRef.current(text)
+      },
+      onError: pushAssistantNote,
+    })
 
   useEffect(() => {
     if (!initialSummary?.trim()) return
@@ -65,13 +110,14 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, sending])
+  }, [messages, sending, listening, transcribing])
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.stop()
+      stopListening({ process: false })
+      cancelSpeech()
     }
-  }, [])
+  }, [stopListening])
 
   const sendMessage = async (raw: string) => {
     const text = raw.trim()
@@ -81,11 +127,153 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
     setInput('')
     setSending(true)
 
+    const authRefusal = detectAuthRefusal(text)
+    if (authRefusal) {
+      setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: authRefusal }])
+      speakFabrica(authRefusal)
+      setSending(false)
+      return
+    }
+
+    const localNav = detectVoiceNavigation(text)
+    if (localNav) {
+      setMessages((prev) => [
+        ...prev,
+        { id: uid(), role: 'assistant', content: localNav.reply },
+      ])
+      speakFabrica(localNav.reply)
+      setSending(false)
+      window.setTimeout(() => {
+        onClose?.()
+        navigate(localNav.path)
+      }, 700)
+      return
+    }
+
+    const cartAction = detectCartAction(text)
+    if (cartAction) {
+      try {
+        const token = await getAccessToken()
+        if (!token) {
+          const reply = 'Please sign in as a buyer to add items to your cart.'
+          setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: reply }])
+          speakFabrica(reply)
+          return
+        }
+        const listed = await fetchMarketplaceProducts(
+          cartAction.query ? { q: cartAction.query } : undefined,
+          token,
+        )
+        const best = pickBestProduct(listed.products, cartAction.query)
+        if (!best?._id) {
+          const reply =
+            'I couldn’t find that fabric in the catalog. Try the exact product name, or open it from marketplace.'
+          setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: reply }])
+          speakFabrica(reply)
+          return
+        }
+        const detail = await fetchMarketplaceProduct(best._id, token)
+        const product = detail.product
+        const moq = Number(product.moq) || 1
+        await addCartItem(token, {
+          productId: product._id,
+          variantId: product.variants?.[0]?._id
+            ? String(product.variants[0]._id)
+            : undefined,
+          quantity: moq,
+        })
+        const reply = `Added ${product.name} to your cart${
+          moq > 1 ? ` (${moq} ${product.unit || 'meters'} MOQ)` : ''
+        }.`
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: 'assistant',
+            content: reply,
+            products: [
+              {
+                _id: product._id,
+                name: product.name,
+                category: product.category,
+                price: product.price,
+                coverImage: product.coverImage,
+                unit: product.unit,
+              },
+            ],
+          },
+        ])
+        speakFabrica(reply)
+        window.dispatchEvent(new CustomEvent('fabrica:cart-refresh'))
+      } catch (err) {
+        const reply =
+          err instanceof Error
+            ? err.message
+            : 'I couldn’t add that to your cart. Please try from the product page.'
+        setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: reply }])
+        speakFabrica(reply)
+      } finally {
+        setSending(false)
+      }
+      return
+    }
+
+    const openProduct = detectOpenProductAction(text)
+    if (openProduct) {
+      try {
+        const token = await getAccessToken()
+        const listed = await fetchMarketplaceProducts(
+          openProduct.query ? { q: openProduct.query } : undefined,
+          token,
+        )
+        const best = pickBestProduct(listed.products, openProduct.query)
+        if (!best?._id) {
+          const reply =
+            'I couldn’t find that product. Try the exact name, or browse the marketplace.'
+          setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: reply }])
+          speakFabrica(reply)
+          return
+        }
+        const reply = `Opening ${best.name}.`
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: 'assistant',
+            content: reply,
+            products: [
+              {
+                _id: best._id,
+                name: best.name,
+                category: best.category,
+                price: best.price,
+                coverImage: best.coverImage,
+                unit: best.unit,
+              },
+            ],
+          },
+        ])
+        speakFabrica(reply)
+        window.setTimeout(() => {
+          onClose?.()
+          navigate(`/marketplace/${best._id}`)
+        }, 500)
+      } catch (err) {
+        const reply =
+          err instanceof Error ? err.message : 'I couldn’t open that product right now.'
+        setMessages((prev) => [...prev, { id: uid(), role: 'assistant', content: reply }])
+        speakFabrica(reply)
+      } finally {
+        setSending(false)
+      }
+      return
+    }
+
     try {
       const history: AiChatHistoryItem[] = messages
         .filter((m) => m.id !== 'welcome')
         .slice(-8)
-        .map((m) => ({ role: m.role, content: m.content }))
+        .map(toHistoryItem)
       const token = await getAccessToken()
       const result = await postAiChat({ message: text, history }, token)
       setMessages((prev) => [
@@ -104,68 +292,55 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
           })),
         },
       ])
+      speakFabrica(result.reply)
+      if (result.intent === 'cart_add' || result.cartUpdated) {
+        window.dispatchEvent(new CustomEvent('fabrica:cart-refresh'))
+      }
+      if (result.openProductId) {
+        window.setTimeout(() => {
+          onClose?.()
+          navigate(`/marketplace/${result.openProductId}`)
+        }, 700)
+      }
+      const navPath = pathForNavigateTo(result.navigateTo)
+      if (navPath) {
+        window.setTimeout(() => {
+          onClose?.()
+          navigate(navPath)
+        }, 700)
+      }
     } catch (err) {
+      const fallback =
+        err instanceof Error
+          ? err.message
+          : 'I could not complete that request. Please try again.'
       setMessages((prev) => [
         ...prev,
         {
           id: uid(),
           role: 'assistant',
-          content:
-            err instanceof Error
-              ? err.message
-              : 'I could not complete that request. Please try again.',
+          content: fallback,
         },
       ])
+      speakFabrica(fallback)
     } finally {
       setSending(false)
     }
   }
+  sendMessageRef.current = sendMessage
 
-  const toggleVoice = () => {
-    const w = window as Window & {
-      SpeechRecognition?: new () => {
-        continuous: boolean
-        interimResults: boolean
-        lang: string
-        start: () => void
-        stop: () => void
-        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
-        onerror: (() => void) | null
-        onend: (() => void) | null
-      }
-      webkitSpeechRecognition?: new () => {
-        continuous: boolean
-        interimResults: boolean
-        lang: string
-        start: () => void
-        stop: () => void
-        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
-        onerror: (() => void) | null
-        onend: (() => void) | null
-      }
-    }
-    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition
-    if (!Ctor) return
-
-    if (listening && recognitionRef.current) {
-      recognitionRef.current.stop()
-      setListening(false)
-      return
-    }
-
-    const recognition = new Ctor()
-    recognition.continuous = false
-    recognition.interimResults = false
-    recognition.lang = 'en-IN'
-    recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || ''
-      if (transcript.trim()) void sendMessage(transcript.trim())
-    }
-    recognition.onerror = () => setListening(false)
-    recognition.onend = () => setListening(false)
-    recognitionRef.current = recognition
-    setListening(true)
-    recognition.start()
+  const clearChat = () => {
+    cancelSpeech()
+    stopListening({ process: false })
+    setInput('')
+    setSending(false)
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: defaultWelcome(initialSummary),
+      },
+    ])
   }
 
   return (
@@ -174,19 +349,32 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
         <div>
           <div className="flex items-center gap-2 mb-0.5">
             <Sparkles size={16} className="text-black" />
-            <h2 className="text-sm font-semibold text-black">Fabrica AI Assistant</h2>
+            <h2 className="font-serif text-base font-semibold text-black">Fabrica AI Assistant</h2>
           </div>
           <p className="text-xs text-gray-500">Your smart fabric sourcing partner</p>
         </div>
-        {onClose && (
+        <div className="flex items-center gap-1">
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-500"
-            aria-label="Close AI assistant"
+            type="button"
+            onClick={clearChat}
+            disabled={messages.length <= 1 && !input.trim()}
+            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-500 disabled:opacity-30"
+            aria-label="Clear chat"
+            title="Clear chat"
           >
-            <X size={18} />
+            <Eraser size={16} />
           </button>
-        )}
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-500"
+              aria-label="Close AI assistant"
+            >
+              <X size={18} />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div
@@ -264,6 +452,13 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
       </div>
 
       <div className="p-4 border-t border-gray-100 shrink-0">
+        {listening || transcribing ? (
+          <p className="text-[11px] font-medium text-red-600 mb-2 px-1">
+            {listening
+              ? `Recording… ${listenLeft}s left · tap mic to stop`
+              : 'Transcribing your voice…'}
+          </p>
+        ) : null}
         <div className="flex items-center gap-2 bg-[#f5f5f5] rounded-full pl-4 pr-1.5 py-1.5">
           <input
             type="text"
@@ -272,26 +467,34 @@ export function AiAssistantPanel({ onClose, initialSummary }: AiAssistantPanelPr
             onKeyDown={(e) => {
               if (e.key === 'Enter') void sendMessage(input)
             }}
-            placeholder="Ask about fabrics, uses, comparisons..."
+            placeholder={
+              listening
+                ? 'Speak now…'
+                : transcribing
+                  ? 'Transcribing…'
+                  : 'Ask about fabrics, uses, comparisons...'
+            }
             className="flex-1 bg-transparent text-sm focus:outline-none text-gray-800 placeholder:text-gray-400 min-w-0"
-            disabled={sending}
+            disabled={sending || listening || transcribing}
           />
           <button
             type="button"
             onClick={toggleVoice}
-            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+            disabled={sending || transcribing}
+            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40 ${
               listening
-                ? 'bg-red-600 text-white'
+                ? 'bg-red-600 text-white animate-pulse'
                 : 'bg-white text-gray-700 border border-gray-200'
             }`}
-            aria-label={listening ? 'Stop listening' : 'Voice input'}
+            aria-label={listening ? 'Stop recording' : 'Voice input'}
+            title={listening ? 'Stop recording' : 'Voice input (10s)'}
           >
             {listening ? <MicOff size={14} /> : <Mic size={14} />}
           </button>
           <button
             type="button"
             onClick={() => void sendMessage(input)}
-            disabled={sending || !input.trim()}
+            disabled={sending || listening || transcribing || !input.trim()}
             className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-black/85 transition-colors shrink-0 disabled:opacity-40"
             aria-label="Send message"
           >

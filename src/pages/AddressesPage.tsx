@@ -115,9 +115,9 @@ export function AddressesPage() {
     <div className="flex-1 flex flex-col min-h-0 bg-[#f9f9f9]">
       <div className="min-h-[calc(100dvh+14rem)] flex flex-col">
       <Navbar variant="solid" showActions fixed={false} />
-      <Container className="flex-1 py-8 md:py-10 pb-36 md:pb-52">
+      <Container wide className="flex-1 py-8 md:py-10 pb-16 md:pb-20">
         <PageBackLink to="/marketplace" label="Back to marketplace" className="mb-3" />
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-6">
+        <div className="w-full flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-6">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-black mb-1">Addresses</h1>
             <p className="text-sm text-gray-500">Save up to 3 delivery addresses.</p>
@@ -131,7 +131,7 @@ export function AddressesPage() {
                 setTouched({})
                 setShowForm(true)
               }}
-              className="self-start sm:self-auto inline-flex items-center gap-1.5 btn-pill-black px-4 py-2.5 text-sm rounded-lg"
+              className="self-start sm:self-auto inline-flex items-center gap-1.5 btn-pill-black px-4 py-2.5 text-sm"
             >
               <Plus size={15} /> Add Address
             </button>
@@ -154,29 +154,29 @@ export function AddressesPage() {
             }}
           />
         ) : (
-          <div className="space-y-3 mb-6">
+          <div className="w-full space-y-3 mb-6">
             {addresses.map((address) => (
               <div
                 key={address._id}
-                className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5 flex items-start justify-between gap-4"
+                className="w-full min-w-0 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-3 sm:gap-6"
               >
-                <div>
-                  <p className="text-sm font-semibold text-black">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-black break-words">
                     {address.name}{' '}
                     {address.isDefault && (
-                      <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full ml-1">
+                      <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full ml-1 whitespace-nowrap">
                         Default
                       </span>
                     )}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 mt-1 break-words">
                     {address.addressLine1}
                     {address.addressLine2 ? `, ${address.addressLine2}` : ''}, {address.city},{' '}
                     {address.state} {address.postalCode}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">{address.phone}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0 self-end sm:self-start">
                   <button
                     type="button"
                     onClick={() => {
@@ -214,7 +214,7 @@ export function AddressesPage() {
         )}
 
         {showForm && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {addressFields.map(([key, label, required]) => {
               const showRequired =
                 required && Boolean(touched[key]) && !form[key].trim()

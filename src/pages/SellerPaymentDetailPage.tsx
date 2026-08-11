@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { CreditCard, Download } from 'lucide-react'
 import { SellerShell } from '../components/seller/SellerShell'
+import { PageBackLink } from '../components/ui/PageBackLink'
 import { PageLoader } from '../components/ui/PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { downloadPaymentSalesInvoice, fetchSellerPayment, type ApiPayment } from '../lib/api'
@@ -52,31 +53,18 @@ export function SellerPaymentDetailPage() {
 
   return (
     <SellerShell>
-      <main className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-        <Link to="/seller/payments" className="text-sm text-gray-600 hover:text-black">
-          ← Back to payments
-        </Link>
-
+      <main className="w-full min-w-0">
         {loading ? (
           <PageLoader label="Loading payment" />
         ) : error || !payment ? (
-          <p className="text-sm text-red-600 mt-6">{error || 'Payment not found'}</p>
+          <>
+            <PageBackLink to="/seller/payments" label="Back to payments" className="mb-4" />
+            <p className="text-sm text-red-600">{error || 'Payment not found'}</p>
+          </>
         ) : (
-          <div className="mt-4 max-w-2xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#ece8e3] flex items-center justify-center shrink-0">
-                  <CreditCard size={20} className="text-gray-700" />
-                </div>
-                <div>
-                  <h1 className="font-serif text-3xl font-semibold text-black">
-                    ₹{formatNumber(payment.amount)}
-                  </h1>
-                  <p className="text-sm text-gray-500 mt-1">
-                    System payment · {payment.status}
-                  </p>
-                </div>
-              </div>
+          <div className="w-full space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <PageBackLink to="/seller/payments" label="Back to payments" className="mb-0" />
               <button
                 type="button"
                 disabled={downloading}
@@ -95,16 +83,33 @@ export function SellerPaymentDetailPage() {
                     setDownloading(false)
                   }
                 }}
-                className="btn-pill-black px-4 py-2.5 text-sm rounded-lg disabled:opacity-50 self-start"
+                className="btn-pill-black px-4 py-2.5 text-sm disabled:opacity-50 self-start sm:self-auto"
               >
                 <Download size={15} />
-                {downloading ? 'Downloading...' : 'Download purchase invoice'}
+                <span className="sm:hidden">{downloading ? '...' : 'Invoice'}</span>
+                <span className="hidden sm:inline">
+                  {downloading ? 'Downloading...' : 'Download purchase invoice'}
+                </span>
               </button>
+            </div>
+
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-[#ece8e3] flex items-center justify-center shrink-0">
+                <CreditCard size={20} className="text-gray-700" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-black tracking-tight">
+                  ₹{formatNumber(payment.amount)}
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  System payment · {payment.status}
+                </p>
+              </div>
             </div>
 
             {downloadError && <p className="text-sm text-red-600">{downloadError}</p>}
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 space-y-4">
+            <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-8 space-y-4">
               <Row label="Payer name" value={payment.payerName} />
               <Row label="Amount" value={`₹${formatNumber(payment.amount)}`} />
               <Row label="Reference" value={payment.reference} />

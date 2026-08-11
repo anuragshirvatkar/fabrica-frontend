@@ -154,7 +154,50 @@ export function Navbar({
 }: NavbarProps) {
   const { user, getAccessToken } = useAuth()
   const [cartCount, setCartCount] = useState(0)
-  const isSolid = variant === 'solid'
+  const [scrolled, setScrolled] = useState(false)
+
+  // Stay transparent while any part of the hero is still on screen.
+  useEffect(() => {
+    if (variant !== 'transparent' || !fixed) {
+      setScrolled(false)
+      return
+    }
+
+    let cancelled = false
+    let observer: IntersectionObserver | null = null
+    let retryId = 0
+
+    const bind = () => {
+      const hero = document.getElementById('landing-hero')
+      if (!hero) return false
+
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!cancelled) setScrolled(!entry.isIntersecting)
+        },
+        { threshold: 0 },
+      )
+      observer.observe(hero)
+      // Hero is on screen at bind time.
+      setScrolled(false)
+      return true
+    }
+
+    if (!bind()) {
+      retryId = window.setInterval(() => {
+        if (bind()) window.clearInterval(retryId)
+      }, 50)
+      window.setTimeout(() => window.clearInterval(retryId), 3000)
+    }
+
+    return () => {
+      cancelled = true
+      window.clearInterval(retryId)
+      observer?.disconnect()
+    }
+  }, [variant, fixed])
+
+  const isSolid = variant === 'solid' || scrolled
 
   const textClass = isSolid ? 'text-black' : 'text-white'
   const positionClass = fixed ? 'fixed top-0 left-0 right-0 z-50' : 'relative'
@@ -178,6 +221,11 @@ export function Navbar({
       }
     }
     void loadCart()
+    const onRefresh = () => {
+      void loadCart()
+    }
+    window.addEventListener('fabrica:cart-refresh', onRefresh)
+    return () => window.removeEventListener('fabrica:cart-refresh', onRefresh)
   }, [user, getAccessToken])
 
   const barClassName = showSearch
@@ -262,10 +310,10 @@ export function Navbar({
         )}
         <Link
           to="/"
-          className={`font-semibold whitespace-nowrap ${textClass} ${
+          className={`brand-mark whitespace-nowrap ${textClass} ${
             spacedLogo
-              ? 'text-sm sm:text-base md:text-lg tracking-[0.2em] sm:tracking-[0.35em]'
-              : 'text-base sm:text-lg md:text-xl tracking-wide'
+              ? 'text-sm sm:text-base md:text-lg tracking-[0.18em] sm:tracking-[0.22em]'
+              : 'text-base sm:text-lg md:text-xl'
           }`}
         >
           FABRICA
@@ -284,7 +332,11 @@ export function Navbar({
   )
 
   return (
-    <nav className={`${isSolid ? 'bg-white border-b border-gray-100' : ''} ${positionClass}`}>
+    <nav
+      className={`${positionClass} transition-colors duration-200 ${
+        isSolid ? 'bg-white border-b border-gray-100 shadow-sm' : 'bg-transparent border-b border-transparent'
+      }`}
+    >
       {showSearch ? (
         <div className={barClassName}>{barContent}</div>
       ) : (
